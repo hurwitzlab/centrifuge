@@ -9,3 +9,6 @@ jimmy: clean
 
 jimmy2: clean
 	./submit.sh $(SCRATCH)/jimmy/fever/fasta $(SCRATCH)/jimmy/fever/centrifuge-nt nt largemem
+
+tov: clean
+	./submit.sh $(SCRATCH)/data/tov/fasta_43 $(SCRATCH)/data/tov/centrifuge-out 'b_compressed+h+v' normal 24:00:00

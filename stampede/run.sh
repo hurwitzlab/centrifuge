@@ -120,12 +120,12 @@ while read FILE; do
   let i++
   printf "%3d: %s\n" $i $BASENAME
   $CENTRIFUGE -f -x "$INDEX" -U "$FILE" -S "$OUT_DIR/$BASENAME.sum" --report-file "$OUT_DIR/$BASENAME.tsv" 
-#  echo $CENTRIFUGE -f -x "$INDEX" -U "$FILE" -S "$OUT_DIR/$BASENAME.sum" --report-file "$OUT_DIR/$BASENAME.tsv" >> $PARAM
+  #echo $CENTRIFUGE -f -x "$INDEX" -U "$FILE" -S "$OUT_DIR/$BASENAME.sum" --report-file "$OUT_DIR/$BASENAME.tsv" >> $PARAM
 done < $FILES_LIST
 
 #echo "Starting parallel job... $(date)"
 #export LAUNCHER_DIR=$HOME/src/launcher
-#export LAUNCHER_PPN=4
+#export LAUNCHER_PPN=2
 #export LAUNCHER_WORKDIR=$OUT_DIR
 #time $LAUNCHER_DIR/paramrun SLURM $LAUNCHER_DIR/init_launcher $LAUNCHER_WORKDIR $PARAM
 #echo "Finished parallel $(date)"
