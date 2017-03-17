@@ -1,0 +1,11 @@
+{
+  "name": "test-cent",
+  "appId": "centrifuge-0.0.1",
+  "archive": true,
+  "inputs": {
+    "IN_DIR": "agave://data.iplantcollaborative.org/kyclark/data/pov/fasta"
+  },
+  "parameter": {
+    "INDEX": "p_compressed"
+  }
+}

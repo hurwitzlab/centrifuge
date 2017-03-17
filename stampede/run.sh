@@ -193,7 +193,7 @@ $LAUNCHER_DIR/paramrun
 echo "Finished Centrifuge"
 
 BUBBLE_PARAM="$$.bubble.param"
-echo "Rscript --vanilla centrifuge_bubble.R $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > $BUBBLE_PARAM
+echo "Rscript --vanilla centrifuge_bubble.R --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > $BUBBLE_PARAM
 export LAUNCHER_JOB_FILE=$BUBBLE_PARAM
 echo "Starting bubble"
 $LAUNCHER_DIR/paramrun

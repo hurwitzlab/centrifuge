@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ARGS=""
-if [[ ! -z ${FASTA} ]]; then
-  ARGS="-a ${FASTA}"
-elif [[ ! -z ${IN_DIR} ]]; then
+if [[ ! -z ${IN_DIR} ]]; then
   ARGS="-d ${IN_DIR}"
+elif [[ ! -z ${FASTA} ]]; then
+  ARGS="-a ${FASTA}"
 elif [[ ! -z ${FORWARD} ]] && [[ ! -z ${REVERSE} ]]; then
   ARGS="-f ${FORWARD} -r ${REVERSE}"
 

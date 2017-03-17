@@ -48,6 +48,10 @@ plot_title = opt$title
 #SETWD: Location of centrifuge_report.tsv files. Should all be in same directory
 setwd(cent.dir)
 
+if (!dir.exists(cent.dir) {
+  stop(paste("Bad centrifuge directory: ", out.dir))
+}
+
 if (!dir.exists(out.dir)) {
   printf("Creating outdir '%s'\n", out.dir)
   dir.create(out.dir)

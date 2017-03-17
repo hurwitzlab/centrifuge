@@ -10,7 +10,10 @@ scriptsgz:
 clean:
 	find . \( -name \*.out -o -name \*.param \) -exec rm {} \;
 
-upload: clean
+rmbin:
+	[[ -d bin ]] && rm -rf bin
+
+upload: clean rmbin scriptsgz
 	files-upload -F $(WORK)/$(APP) kyclark/applications
 
 update:
