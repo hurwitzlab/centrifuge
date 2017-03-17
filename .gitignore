@@ -20,3 +20,5 @@ nytprof.out
 /_eumm/
 *.tgz
 *.out
+*.param
+*.swp

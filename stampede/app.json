@@ -1,0 +1,66 @@
+{
+    "available": true,
+    "checkpointable": false,
+    "defaultMemoryPerNode": 32,
+    "defaultProcessorsPerNode": 16,
+    "defaultMaxRunTime": "12:00:00",
+    "defaultNodeCount": 1,
+    "defaultQueue": "serial",
+    "deploymentPath": "kyclark/applications/muscope-blast-0.0.2/stampede",
+    "deploymentSystem": "data.iplantcollaborative.org",
+    "executionSystem": "tacc-stampede-kyclark",
+    "executionType": "HPC",
+    "helpURI": "http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0997-x",
+    "label": "muSCOPE BLAST",
+    "longDescription": "BLAST for muSCOPE",
+    "modules": [],
+    "name": "muSCOPE-BLAST",
+    "ontology": ["http://sswapmeet.sswap.info/agave/apps/Application"],
+    "parallelism": "SERIAL",
+    "shortDescription": "muSCOPE BLAST",
+    "tags": ["muscope","blast"],
+    "templatePath": "template.sh",
+    "testPath": "test.sh",
+    "version": "0.0.2",
+    "inputs": [{
+        "id": "QUERY",
+        "value": {
+            "default": "",
+            "order": 0,
+            "required": true,
+            "validator": "",
+            "visible": true
+        },
+        "semantics": {
+            "ontology": ["http://sswapmeet.sswap.info/mime/application/X-bam"],
+            "minCardinality": 1,
+            "fileTypes": ["raw-0"]
+        },
+        "details": {
+            "description": "",
+            "label": "Input file(s)",
+            "argument": "",
+            "showArgument": true
+        }
+    }],
+    "parameters": [
+       {
+        "id": "PCT_ID",
+        "value": {
+            "type": "string",
+            "default": ".98",
+            "order": 1,
+            "required": false,
+            "validator": "",
+            "visible": true
+        },
+        "details": {
+            "description": "Percent Identity",
+            "label": "Percent Identity",
+            "argument": "-p",
+            "showArgument": true
+        }
+      }   
+    ],
+    "outputs": []
+}
