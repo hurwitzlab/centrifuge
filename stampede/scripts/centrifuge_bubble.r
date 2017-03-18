@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+# Authors: Jimmy Thornton <jamesthornton@email.arizona.edu>,
+#          Ken Youens-Clark <kyclark@email.arizona.edu>
+
 library("optparse")
 library("plyr")
 library("ggplot2")
@@ -45,7 +48,10 @@ out.dir    = opt$outdir
 file_name  = opt$outfile
 plot_title = opt$title
 
-#SETWD: Location of centrifuge_report.tsv files. Should all be in same directory
+#
+# SETWD: Location of centrifuge_report.tsv files. 
+# Should all be in same directory
+#
 setwd(cent.dir)
 
 if (!dir.exists(cent.dir) {
@@ -57,34 +63,42 @@ if (!dir.exists(out.dir)) {
   dir.create(out.dir)
 }
 
-temp = list.files(pattern="*.tsv")
-myfiles = lapply(temp, read.delim)
-sample_names <- as.list(sub(".tsv", "", temp))
-myfiles = Map(cbind, myfiles, sample = sample_names)
+temp         = list.files(pattern="*.tsv")
+myfiles      = lapply(temp, read.delim)
+sample_names = as.list(sub(".tsv", "", temp))
+myfiles      = Map(cbind, myfiles, sample = sample_names)
 
-#Filter settings, default is to remove human and synthetic constructs
-filter <- llply(myfiles, subset, name != "Homo sapiens")
-filter2 <- llply(filter, subset, name != "synthetic construct")
+#
+# Filter settings, default is to remove human and synthetic constructs
+# Need to allow any number of species to be passed as arguments
+#
+filter  = llply(myfiles, subset, name != "Homo sapiens")
+filter2 = llply(filter, subset, name != "synthetic construct")
 
-#Proportion calculations: Each species "Number of Unique Reads" is divided by total "Unique Reads"
+#
+# Proportion calculations: Each species "Number of Unique Reads" 
+# is divided by total "Unique Reads"
+#
 props = lapply(filter2, function(x) { 
     x$proportion <- (x$numUniqueReads / sum(x$numUniqueReads))
     return(x[,c("name","proportion","sample")])
 })
 
-#Final dataframe created for plotting, can change proportion value (Default 1%)
-final <- llply(props, subset, proportion > 0.02)
-df <- ldply(final, data.frame)
-
-names(df) <- c("x", "Proportion", "z")
+#
+# Final dataframe created for plotting,
+# can change proportion value (Default 1%)
+#
+final     = llply(props, subset, proportion > 0.02)
+df        = ldply(final, data.frame)
+names(df) = c("x", "Proportion", "z")
 
 options(bitmapType='cairo')
 png(filename=file.path(out.dir, paste0(file_name,".png")), width = 800, height = 800)
-p2 <- ggplot(df, aes(as.factor(z), as.factor(x))) + geom_point(aes(size = Proportion))
-p2 <- p2 + theme(text = element_text(size=20), axis.text.x = element_text(angle = 90, hjust = 1))
-p2 <- p2 + labs(y = "Organism", x = "Sample")
-p2 <- p2 + ggtitle(plot_title) + theme(plot.title = element_text(hjust = 0.5))
-p2 <- p2 + guides(color=F)
+p2 = ggplot(df, aes(as.factor(z), as.factor(x))) + geom_point(aes(size = Proportion))
+p2 = p2 + theme(text = element_text(size=20), axis.text.x = element_text(angle = 90, hjust = 1))
+p2 = p2 + labs(y = "Organism", x = "Sample")
+p2 = p2 + ggtitle(plot_title) + theme(plot.title = element_text(hjust = 0.5))
+p2 = p2 + guides(color=F)
 print(p2)
 dev.off()
 

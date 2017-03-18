@@ -55,7 +55,7 @@
               { "nt": "NCBI nucleotide non-redundant sequences" },
               { "p_compressed" : "Bacteria, Archaea (compressed)" },
               { "p_compressed+h+v": "Bacteria, Archaea, Viruses, Human (compressed)" },
-              { "p+h+v": "Bacteria, Aarchaea, Viruses, Human" }
+              { "p+h+v": "Bacteria, Archaea, Viruses, Human" }
             ],
             "visible": true
         },
