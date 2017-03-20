@@ -19,6 +19,13 @@ option_list = list(
     metavar = "character"
   ),
   make_option(
+    c("-e", "--exclude"),
+    default = "",
+    type = "character",
+    help = "Species to exclude",
+    metavar = "character"
+  ),
+  make_option(
     c("-o", "--outdir"),
     default = "",
     type = "character",
@@ -47,16 +54,17 @@ cent.dir   = opt$dir
 out.dir    = opt$outdir
 file_name  = opt$outfile
 plot_title = opt$title
+exclude    = unlist(strsplit(opt$exclude,","))
 
 #
 # SETWD: Location of centrifuge_report.tsv files. 
 # Should all be in same directory
 #
-setwd(cent.dir)
-
-if (!dir.exists(cent.dir) {
-  stop(paste("Bad centrifuge directory: ", out.dir))
+if (!dir.exists(cent.dir)) {
+  stop(paste("Bad centrifuge directory: ", cent.dir))
 }
+
+setwd(cent.dir)
 
 if (!dir.exists(out.dir)) {
   printf("Creating outdir '%s'\n", out.dir)
@@ -69,17 +77,17 @@ sample_names = as.list(sub(".tsv", "", temp))
 myfiles      = Map(cbind, myfiles, sample = sample_names)
 
 #
-# Filter settings, default is to remove human and synthetic constructs
-# Need to allow any number of species to be passed as arguments
+# Remove unwanted species
 #
-filter  = llply(myfiles, subset, name != "Homo sapiens")
-filter2 = llply(filter, subset, name != "synthetic construct")
+for (i in exclude) {
+    myfiles <- llply(myfiles, function(x)x[x$name!=i,])
+}
 
 #
 # Proportion calculations: Each species "Number of Unique Reads" 
 # is divided by total "Unique Reads"
 #
-props = lapply(filter2, function(x) { 
+props = lapply(myfiles, function(x) { 
     x$proportion <- (x$numUniqueReads / sum(x$numUniqueReads))
     return(x[,c("name","proportion","sample")])
 })
