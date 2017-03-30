@@ -124,7 +124,7 @@ if [[ ! -d $INDEX_DIR ]]; then
   exit 1
 fi
 
-NUM=$(find "$INDEX_DIR" -name "$INDEX.\*.cf" | wc -l | awk '{print $1}')
+NUM=$(find "$INDEX_DIR" -name $INDEX.\*.cf | wc -l | awk '{print $1}')
 
 if [[ $NUM -gt 0 ]]; then
   echo "Using INDEX \"$INDEX\""
@@ -213,11 +213,11 @@ export LAUNCHER_PLUGIN_DIR=$LAUNCHER_DIR/plugins
 echo "Finished Centrifuge"
 
 #
-# Even though there is only one command here, I pass to LAUNCHER
+
 # so that it will be run /after/ Centrifuge has finished
 #
 BUBBLE_PARAM="$$.bubble.param"
-echo "Rscript --vanilla centrifuge_bubble.r --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > $BUBBLE_PARAM
+echo "centrifuge_bubble.r --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > $BUBBLE_PARAM
 export LAUNCHER_JOB_FILE=$BUBBLE_PARAM
 echo "Starting bubble"
 "$LAUNCHER_DIR/paramrun"
