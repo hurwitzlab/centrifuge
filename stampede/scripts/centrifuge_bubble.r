@@ -20,7 +20,7 @@ option_list = list(
   ),
   make_option(
     c("-o", "--outdir"),
-    default = "",
+    default = file.path(getwd(), "plots"),
     type = "character",
     help = "out directory",
     metavar = "character"
@@ -54,7 +54,7 @@ plot_title = opt$title
 #
 setwd(cent.dir)
 
-if (!dir.exists(cent.dir) {
+if (!dir.exists(cent.dir)) {
   stop(paste("Bad centrifuge directory: ", out.dir))
 }
 
