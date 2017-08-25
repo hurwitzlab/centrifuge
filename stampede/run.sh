@@ -18,6 +18,8 @@ INDEX="p_compressed+h+v"
 OUT_DIR="$BIN/centrifuge-out"
 CENTRIFUGE_DIR="$WORK/tools/centrifuge-1.0.3-beta"
 INDEX_DIR="$WORK/centrifuge-indexes"
+MAX_SEQS_PER_FILE=100000
+SKIP_EXISTING=0
 
 #
 # Some needed functions
@@ -47,6 +49,7 @@ function HELP() {
   echo " -i INDEX ($INDEX)"
   echo " -o OUT_DIR ($OUT_DIR)"
   echo " -s SINGLETONS"
+  echo " -k SKIP_EXISTING ($SKIP_EXISTING)"
   echo ""
   exit 0
 }
@@ -56,7 +59,7 @@ function HELP() {
 #
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:i:f:m:o:r:s:h OPT; do
+while getopts :a:d:i:f:k:m:o:r:s:h OPT; do
   case $OPT in
     a)
       FASTA="$OPTARG"
@@ -72,6 +75,9 @@ while getopts :a:d:i:f:m:o:r:s:h OPT; do
       ;;
     f)
       FORWARD="$OPTARG"
+      ;;
+    k)
+      SKIP_EXISTING=1
       ;;
     m)
       MODE="$OPTARG"
@@ -112,9 +118,15 @@ if [[ -e $SCRIPTS ]]; then
     mkdir bin
   fi
   tar -C bin -xvf $SCRIPTS
+  PATH="$(PWD)/bin:$PATH"
 fi
 
 export PATH
+
+echo "PWD = $(PWD)"
+echo "BIN = $BIN"
+echo "WHAT'S IN \"$BIN\""
+find "$BIN"
 
 #
 # Verify existence of INDEX_DIR, chosen INDEX
@@ -140,6 +152,7 @@ fi
 #
 [[ ! -d $OUT_DIR ]] && mkdir -p "$OUT_DIR"
 
+
 REPORT_DIR="$OUT_DIR/reports"
 [[ ! -d "$REPORT_DIR" ]] && mkdir -p "$REPORT_DIR"
 
@@ -149,8 +162,8 @@ PLOT_DIR="$OUT_DIR/plots"
 #
 # Create, null-out command file for running Centrifuge
 #
-CENT_PARAM="$$.centrifuge.param"
-cat /dev/null > $CENT_PARAM
+CENT_PARAM="$PWD/$$.centrifuge.param"
+cat /dev/null > "$CENT_PARAM"
 
 #
 # A single FASTA
@@ -158,7 +171,7 @@ cat /dev/null > $CENT_PARAM
 if [[ ! -z $FASTA ]]; then
   BASENAME=$(basename "$FASTA")
   echo "Will process single FASTA \"$BASENAME\""
-  echo "CENTRIFUGE_INDEXES=$INDEX_DIR centrifuge -f -x $INDEX -U $FASTA -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" > $CENT_PARAM
+  echo "CENTRIFUGE_INDEXES=$INDEX_DIR centrifuge -f -x \"$INDEX\" -U \"$FASTA\" -S \"$REPORT_DIR/$BASENAME.sum\" --report-file \"$REPORT_DIR/$BASENAME.tsv\"" > "$CENT_PARAM"
 
 #
 # Paired-end FASTA reads
@@ -168,22 +181,41 @@ elif [[ ! -z $FORWARD ]] && [[ ! -z $REVERSE ]]; then
   echo "Will process FORWARD \"$FORWARD\" REVERSE \"$REVERSE\""
   S=""
   if [[ ! -z $SINGLETONS ]]; then
-    S="-U $SINGLETONS"
+    S="-U \"$SINGLETONS\""
   fi
-  echo "CENTRIFUGE_INDEXES=$INDEX_DIR centrifuge -f -x $INDEX -1 $FORWARD -2 $REVERSE $S -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" > $CENT_PARAM
+  echo "CENTRIFUGE_INDEXES=$INDEX_DIR centrifuge -f -x \"$INDEX\" -1 \"$FORWARD\" -2 \"$REVERSE\" $S -S \"$REPORT_DIR/$BASENAME.sum\" --report-file \"$REPORT_DIR/$BASENAME.tsv\"" > "$CENT_PARAM"
 
 #
 # A directory of single FASTA files
 #
 elif [[ ! -z $IN_DIR ]] && [[ -d $IN_DIR ]]; then
   if [[ $MODE == 'single' ]]; then
-    FILES=$(mktemp)
-    find "$IN_DIR" -type f -size +0c > "$FILES"
+    SPLIT_DIR="$OUT_DIR/split"
+    [[ ! -d "$SPLIT_DIR" ]] && mkdir -p "$SPLIT_DIR"
+
+    INPUT_FILES=$(mktemp)
+    find "$IN_DIR" -type f -size +0c > "$INPUT_FILES"
+
+    while read -r FILE; do
+      fasplit.py -f "$FILE" -o "$SPLIT_DIR/$(basename "$FILE")" -n "$MAX_SEQS_PER_FILE"
+    done < "$INPUT_FILES"
+
+    SPLIT_FILES=$(mktemp)
+    find "$SPLIT_DIR" -type f -size +0c > "$SPLIT_FILES"
     while read -r FILE; do
       BASENAME=$(basename "$FILE")
-      echo "CENTRIFUGE_INDEXES=$INDEX_DIR centrifuge -f -x $INDEX -U $FILE -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" >> $CENT_PARAM
-    done < "$FILES"
-    rm "$FILES"
+      SUM_FILE="$REPORT_DIR/$BASENAME.sum"
+
+      if [[ "$SKIP_EXISTING" -gt 0 ]] && [[ -s "$SUM_FILE" ]]; then
+        echo "Skipping $BASENAME (sum file exists)"
+      else
+        echo "CENTRIFUGE_INDEXES=$INDEX_DIR centrifuge -f -x $INDEX -U $FILE -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" >> "$CENT_PARAM"
+      fi
+    done < "$SPLIT_FILES"
+
+    rm "$INPUT_FILES"
+    rm "$SPLIT_FILES"
+    #rm -rf "$SPLIT_DIR"
   else
     echo "Can't yet run IN_DIR with 'paired' mode"
     exit 1
@@ -201,24 +233,23 @@ fi
 # Pass Centrifuge run to LAUNCHER
 # Run "interleaved" to ensure this finishes before bubble
 #
-echo "Running NJOBS \"$(lc $CENT_PARAM)\" for Centrifuge \"$CENT_PARAM\""
-export LAUNCHER_DIR=$HOME/src/launcher
-export LAUNCHER_PPN=2
-export LAUNCHER_WORKDIR=$BIN
+echo "Running NJOBS \"$(lc "$CENT_PARAM")\" for Centrifuge \"$CENT_PARAM\""
+export LAUNCHER_DIR="$HOME/src/launcher"
+export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
+export LAUNCHER_WORKDIR="$BIN"
 export LAUNCHER_JOB_FILE="$CENT_PARAM"
 export LAUNCHER_RMI=SLURM
 export LAUNCHER_SCHED=interleaved
-export LAUNCHER_PLUGIN_DIR=$LAUNCHER_DIR/plugins
 "$LAUNCHER_DIR/paramrun"
 echo "Finished Centrifuge"
 
 #
-
 # so that it will be run /after/ Centrifuge has finished
 #
-BUBBLE_PARAM="$$.bubble.param"
-echo "centrifuge_bubble.r --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > $BUBBLE_PARAM
-export LAUNCHER_JOB_FILE=$BUBBLE_PARAM
+BUBBLE_PARAM="$PWD/$$.bubble.param"
+echo "centrifuge_bubble.r --dir \"$REPORT_DIR\" --outdir \"$PLOT_DIR\" --outfile bubble --title centrifuge" > "$BUBBLE_PARAM"
+#export LAUNCHER_NJOBS=1
+export LAUNCHER_JOB_FILE="$BUBBLE_PARAM"
 echo "Starting bubble"
 "$LAUNCHER_DIR/paramrun"
 echo "Finished bubble"
@@ -226,7 +257,7 @@ echo "Finished bubble"
 #
 # Clean up
 #
-[[ -d bin ]] && rm -rf bin
+#[[ -d bin ]] && rm -rf bin
 
 echo "Done, look in OUT_DIR \"$OUT_DIR\""
 echo "Comments to Ken Youens-Clark <kyclark@email.arizona.edu>"

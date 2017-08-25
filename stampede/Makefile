@@ -13,8 +13,8 @@ clean:
 rmbin:
 	[[ -d bin ]] && rm -rf bin
 
-upload: clean rmbin scriptsgz
-	files-upload -F $(WORK)/$(APP) kyclark/applications
+up:
+	copy-from-manifest.pl6 $(WORK)/$(APP)
 
 update:
 	apps-addupdate -F app.json
@@ -50,4 +50,16 @@ skin:
 	./submit.sh $(WORK)/skin-virome-grice/cutadapt $(WORK)/skin-virome-grice/centrifuge 'b_compressed+h+v' normal 24:00:00
 
 korn:
-	./submit.sh $(SCRATCH)/frischkorn/fasta $(SCRATCH)/frischkorn/centrifuge 'b_compressed+h+v' normal 24:00:00
+	./submit.sh $(SCRATCH)/frischkorn/fasta $(SCRATCH)/frischkorn/centrifuge 'p_compressed+h+v' normal 24:00:00
+
+phage:
+	./submit.sh $(SCRATCH)/george/phage/fasta $(SCRATCH)/george/phage/centrifuge 'p_compressed+h+v' development 02:00:00
+
+madison:
+	./submit.sh $(SCRATCH)/madison/R1_trimmedQ30/fasta $(SCRATCH)/madison/R1_trimmedQ30/centrifuge 'p_compressed+h+v' development 02:00:00
+
+pam:
+	./submit.sh $(WORK)/pam-morris/fasta $(WORK)/pam-morris/centrifuge 'p_compressed+h+v' normal 24:00:00
+
+pam2:
+	./submit.sh $(WORK)/pam-morris/centrifuge/filtered $(WORK)/pam-morris/filtered 'p_compressed+h+v' normal 24:00:00

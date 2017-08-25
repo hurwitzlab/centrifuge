@@ -39,7 +39,7 @@
         "details": {
             "description": "",
             "label": "Directory of unpaired FASTA files",
-            "argument": "",
+            "argument": "-d ",
             "showArgument": true
         }
     }],
@@ -62,7 +62,7 @@
         "details": {
             "description": "Index to use for classification",
             "label": "Index name",
-            "argument": "",
+            "argument": "-i ",
             "showArgument": true
         }
       }
