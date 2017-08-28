@@ -50,7 +50,7 @@ skin:
 	./submit.sh $(WORK)/skin-virome-grice/cutadapt $(WORK)/skin-virome-grice/centrifuge 'b_compressed+h+v' normal 24:00:00
 
 korn:
-	./submit.sh "$(SCRATCH)/frischkorn/fasta" "$(SCRATCH)/frischkorn/centrifuge" "p_compressed+h+v" "9606,32630" development 02:00:00
+	./submit.sh "$(SCRATCH)/frischkorn/fasta" "$(SCRATCH)/frischkorn/centrifuge" "p_compressed+h+v" "9606,32630" normal 24:00:00
 
 phage:
 	./submit.sh $(SCRATCH)/george/phage/fasta $(SCRATCH)/george/phage/centrifuge 'p_compressed+h+v' development 02:00:00

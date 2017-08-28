@@ -19,7 +19,7 @@ OUT_DIR="$BIN/centrifuge-out"
 CENTRIFUGE_DIR="/work/03137/kyclark/tools/centrifuge-1.0.3-beta"
 INDEX_DIR="/work/03137/kyclark/centrifuge-indexes"
 MAX_SEQS_PER_FILE=100000
-CENTRIFUGE="centrifuge-1.0.3-beta.img"
+CENTRIFUGE_IMG="centrifuge-1.0.3-beta.img"
 CENTRIFUGE_BUBBLE="centrifuge-bubble-0.0.1.img"
 EXCLUDE_TAXIDS=""
 SKIP_EXISTING=0
@@ -155,7 +155,16 @@ cat /dev/null > "$CENT_PARAM"
 
 EXCLUDE_ARG=""
 [[ -n "$EXCLUDE_TAXIDS" ]] && EXCLUDE_ARG="--exclude-taxids $EXCLUDE_TAXIDS"
-RUN_CENTRIFUGE="CENTRIFUGE_INDEXES=$INDEX_DIR $CENTRIFUGE $EXCLUDE_ARG"
+RUN_CENTRIFUGE="CENTRIFUGE_INDEXES=$INDEX_DIR singularity run $CENTRIFUGE_IMG $EXCLUDE_ARG"
+
+#
+# Set up LAUNCHER env
+#
+export LAUNCHER_DIR="$HOME/src/launcher"
+export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
+export LAUNCHER_WORKDIR="$BIN"
+export LAUNCHER_RMI=SLURM
+export LAUNCHER_SCHED=interleaved
 
 #
 # A single FASTA
@@ -187,12 +196,23 @@ elif [[ ! -z $IN_DIR ]] && [[ -d $IN_DIR ]]; then
     
         INPUT_FILES=$(mktemp)
         find "$IN_DIR" -type f -size +0c > "$INPUT_FILES"
+
+        SPLIT_PARAM="$$.split.param"
     
+        i=0
         while read -r FILE; do
-            fasplit.py -f "$FILE" -o "$SPLIT_DIR/$(basename "$FILE")" -n "$MAX_SEQS_PER_FILE"
+            let i++
+            printf "%3d: Split %s" $i $(basename $FILE)
+            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $SPLIT_DIR/$(basename $FILE) -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
         done < "$INPUT_FILES"
+
+        echo "Launching splitter"
+        export LAUNCHER_JOB_FILE="$SPLIT_PARAM"
+        "$LAUNCHER_DIR/paramrun"
+        # rm "$SPLIT_PARAM"
     
         SPLIT_FILES=$(mktemp)
+        echo "Splitter done, found $(lc "$SPLIT_FILES") split files"
         find "$SPLIT_DIR" -type f -size +0c > "$SPLIT_FILES"
 
         while read -r FILE; do
@@ -226,21 +246,22 @@ fi
 # Pass Centrifuge run to LAUNCHER
 # Run "interleaved" to ensure this finishes before bubble
 #
-echo "Running NJOBS \"$(lc "$CENT_PARAM")\" for Centrifuge \"$CENT_PARAM\""
-export LAUNCHER_DIR="$HOME/src/launcher"
-export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
-export LAUNCHER_WORKDIR="$BIN"
-export LAUNCHER_JOB_FILE="$CENT_PARAM"
-export LAUNCHER_RMI=SLURM
-export LAUNCHER_SCHED=interleaved
-"$LAUNCHER_DIR/paramrun"
-echo "Finished Centrifuge"
+NUM_CENT_JOBS=$(lc "$CENT_PARAM")
+if [[ "$NUM_CENT_JOBS" -gt 1 ]]; then
+    echo "Running \"$NUM_CENT_JOBS\" for Centrifuge \"$CENT_PARAM\""
+    export LAUNCHER_JOB_FILE="$CENT_PARAM"
+    "$LAUNCHER_DIR/paramrun"
+    echo "Finished Centrifuge"
+else
+    echo "There are not Centrifuge jobs to run!"
+    exit 1
+fi
 
 #
 # so that it will be run /after/ Centrifuge has finished
 #
 BUBBLE_PARAM="$PWD/$$.bubble.param"
-echo "$CENTRIFUGE_BUBBLE --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > "$BUBBLE_PARAM"
+echo "singularity exec $CENTRIFUGE_IMG centrifuge_bubble.r --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > "$BUBBLE_PARAM"
 export LAUNCHER_JOB_FILE="$BUBBLE_PARAM"
 echo "Starting bubble"
 "$LAUNCHER_DIR/paramrun"
