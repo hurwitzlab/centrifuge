@@ -15,3 +15,6 @@ img: clean
 
 shell:
 	sudo $(SINGULARITY) shell --writable -B $(shell pwd):/tmp $(IMG_NAME)
+
+scp:
+	scp $(IMG_NAME) stampede:/work/03137/kyclark/centrifuge-0.0.1/stampede
