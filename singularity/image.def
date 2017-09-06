@@ -46,7 +46,7 @@ local({
   options(repos = r)
 })
 EOF
-    /usr/bin/Rscript /app/stampede-centrifuge/stampede/scripts/install.R
+    /usr/bin/Rscript /app/stampede-centrifuge/stampede/scripts/install.r
 
     #
     # Mount points for TACC directories
