@@ -41,23 +41,28 @@ def main():
     for i, fasta in enumerate(fasta_files):
         print('{:4}: {}'.format(i + 1, fasta))
         basename, ext = os.path.splitext(os.path.basename(fasta))
-        splits = sorted([f for f in split_files if re.match(basename, f)])
+        splits = {'tsv': [], 'sum': []}
+        for split in split_files:
+            regex = '({})\.(\d+)\.({})\.(tsv|sum)'.format(basename, ext[1:])
+            match = re.match(regex, split)
+            if not match is None:
+                _, num, _, type_ext = match.groups()
+                if type_ext in splits:
+                    # storing a tuple with the num first for sorting
+                    splits[type_ext].append((int(num), os.path.join(reports_dir, split)))
 
-        for file_type in ['.tsv', '.sum']:
-            files = [os.path.join(reports_dir, f)
-                     for f in splits if f.endswith(file_type)]
+        for file_type in splits:
+            # sort on the fst of the tuple but take the snd
+            files = [a[1] for a in sorted(splits[file_type], key=lambda a: a[0])]
+
             if len(files) < 1:
                 print('WARNING: No files ending with "{}" for "{}"',
                       file_type, fasta)
             else:
                 out_path = os.path.join(out_dir, fasta + file_type)
                 print('      Writing to "{}"'.format(out_path))
-                out_fh = open(out_path, 'w')
-
-                if file_type == '.tsv':
-                    write_tsv(files, out_fh)
-                else:
-                    write_sum(files, out_fh)
+                func = write_tsv if file_type == 'tsv' else write_sum
+                func(files, open(out_path, 'w'))
 
     print('Done, see output dir "{}"'.format(out_dir))
 
