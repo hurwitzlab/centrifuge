@@ -4,19 +4,13 @@ EMAIL = kyclark@email.arizona.edu
 run: clean
 	./submit.sh $(SCRATCH)/gwatts/bug_mixing/wgs/fasta $(SCRATCH)/centrifuge-out
 
-scriptsgz:
-	(cd scripts && tar cvf ../scripts.tgz *)
-
 clean:
 	find . \( -name \*.out -o -name \*.param \) -exec rm {} \;
-
-rmbin:
-	[[ -d bin ]] && rm -rf bin
 
 up:
 	copy-from-manifest.pl6 $(WORK)/$(APP)
 
-update:
+app:
 	apps-addupdate -F app.json
 
 test: clean
@@ -47,7 +41,7 @@ ohana: clean
 	./submit.sh $(WORK)/ohana/fasta $(WORK)/ohana/centrifuge-out 'b_compressed+h+v' normal 24:00:00
 
 skin:
-	./submit.sh $(WORK)/skin-virome-grice/cutadapt $(WORK)/skin-virome-grice/centrifuge 'b_compressed+h+v' normal 24:00:00
+	./submit.sh $(WORK)/skin-virome-grice/cutadapt $(WORK)/skin-virome-grice/centrifuge 'b_compressed+h+v' development 02:00:00
 
 korn:
 	./submit.sh "$(SCRATCH)/frischkorn/fasta" "$(SCRATCH)/frischkorn/centrifuge" "p_compressed+h+v" "9606,32630" normal 24:00:00

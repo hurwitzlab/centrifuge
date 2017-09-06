@@ -6,6 +6,6 @@
     "IN_DIR": "agave://data.iplantcollaborative.org/kyclark/data/pov/fasta"
   },
   "parameter": {
-    "INDEX": "p_compressed"
+    "INDEX": "p_compressed+h+v"
   }
 }

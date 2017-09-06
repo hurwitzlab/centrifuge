@@ -17,10 +17,9 @@ SINGLETONS=""
 INDEX="p_compressed+h+v"
 OUT_DIR="$BIN/centrifuge-out"
 CENTRIFUGE_DIR="/work/03137/kyclark/tools/centrifuge-1.0.3-beta"
-INDEX_DIR="/work/03137/kyclark/centrifuge-indexes"
+INDEX_DIR="/work/05066/imicrobe/iplantc.org/data/centrifuge-indexes"
 MAX_SEQS_PER_FILE=100000
 CENTRIFUGE_IMG="centrifuge-1.0.3-beta.img"
-CENTRIFUGE_BUBBLE="centrifuge-bubble-0.0.1.img"
 EXCLUDE_TAXIDS=""
 SKIP_EXISTING=0
 
@@ -62,7 +61,7 @@ function HELP() {
 #
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:i:f:k:m:o:r:s:x:h OPT; do
+while getopts :a:d:i:f:m:o:r:s:x:kh OPT; do
     case $OPT in
         a)
             FASTA="$OPTARG"
@@ -162,7 +161,7 @@ RUN_CENTRIFUGE="CENTRIFUGE_INDEXES=$INDEX_DIR singularity run $CENTRIFUGE_IMG $E
 #
 export LAUNCHER_DIR="$HOME/src/launcher"
 export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
-export LAUNCHER_WORKDIR="$BIN"
+export LAUNCHER_WORKDIR="$PWD"
 export LAUNCHER_RMI=SLURM
 export LAUNCHER_SCHED=interleaved
 
@@ -202,14 +201,16 @@ elif [[ ! -z $IN_DIR ]] && [[ -d $IN_DIR ]]; then
         i=0
         while read -r FILE; do
             let i++
-            printf "%3d: Split %s" $i $(basename $FILE)
-            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $SPLIT_DIR/$(basename $FILE) -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
+            printf "%3d: Split %s\n" $i "$(basename "$FILE")"
+            BASENAME=$(basename "$FILE")
+            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $SPLIT_DIR/$BASENAME -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
         done < "$INPUT_FILES"
 
         echo "Launching splitter"
+        export LAUNCHER_PPN=4
         export LAUNCHER_JOB_FILE="$SPLIT_PARAM"
         "$LAUNCHER_DIR/paramrun"
-        # rm "$SPLIT_PARAM"
+        rm "$SPLIT_PARAM"
     
         SPLIT_FILES=$(mktemp)
         echo "Splitter done, found $(lc "$SPLIT_FILES") split files"
@@ -253,7 +254,7 @@ if [[ "$NUM_CENT_JOBS" -gt 1 ]]; then
     "$LAUNCHER_DIR/paramrun"
     echo "Finished Centrifuge"
 else
-    echo "There are not Centrifuge jobs to run!"
+    echo "There are no Centrifuge jobs to run!"
     exit 1
 fi
 
