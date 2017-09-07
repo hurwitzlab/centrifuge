@@ -59,7 +59,7 @@ def main():
                 print('WARNING: No files ending with "{}" for "{}"',
                       file_type, fasta)
             else:
-                out_path = os.path.join(out_dir, fasta + file_type)
+                out_path = os.path.join(out_dir, fasta + '.' + file_type)
                 print('      Writing to "{}"'.format(out_path))
                 func = write_tsv if file_type == 'tsv' else write_sum
                 func(files, open(out_path, 'w'))
