@@ -2,9 +2,7 @@ BootStrap: docker
 From: ubuntu:latest
 
 %environment
-    PERL5LIB=/app/fizkin/scripts
-    export PERL5LIB
-    PATH=/app/centrifuge:/app/stampede-centrifuge/stampede/scripts:$PATH
+    PATH=/app/centrifuge:/app/stampede-centrifuge/scripts:$PATH
     LD_LIBRARY_PATH=/app
     export LD_LIBRARY_PATH
 
@@ -46,7 +44,7 @@ local({
   options(repos = r)
 })
 EOF
-    /usr/bin/Rscript /app/stampede-centrifuge/stampede/scripts/install.r
+    /usr/bin/Rscript /app/stampede-centrifuge/scripts/install.r
 
     #
     # Mount points for TACC directories
