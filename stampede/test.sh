@@ -11,9 +11,7 @@
 
 OUT_DIR="$SCRATCH/centrifuge/test"
 
-if [[ -d $OUT_DIR ]]; then
-  rm -rf $OUT_DIR/*
-fi
+[[ -d "$OUT_DIR" ]] && rm -rf $OUT_DIR/*
 
 #run.sh -a "$WORK/data/pov/fasta/POV_GD.Spr.C.8m_reads.fa" -o $OUT_DIR
 run.sh -d "$WORK/data/pov/fasta" -o $OUT_DIR

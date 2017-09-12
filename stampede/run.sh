@@ -259,13 +259,23 @@ else
 fi
 
 #
-# so that it will be run /after/ Centrifuge has finished
+# Collapse the results
 #
-BUBBLE_PARAM="$PWD/$$.bubble.param"
-echo "singularity exec $CENTRIFUGE_IMG centrifuge_bubble.r --dir $REPORT_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > "$BUBBLE_PARAM"
-export LAUNCHER_JOB_FILE="$BUBBLE_PARAM"
+COLLAPSE_DIR="$OUT_DIR/collapsed"
+echo "Collapsing reports"
+singularity exec $CENTRIFUGE_IMG collapse.py -f "$IN_DIR" -r "$REPORT_DIR" -o "$COLLAPSE_DIR"
+echo "Finished collapse"
+
+#
+# Create bubble plot
+#
 echo "Starting bubble"
-"$LAUNCHER_DIR/paramrun"
+singularity exec $CENTRIFUGE_IMG centrifuge_bubble.r --dir "$COLLAPSE_DIR" --outdir "$PLOT_DIR" --outfile "bubble" --title "centrifuge"
+
+#BUBBLE_PARAM="$PWD/$$.bubble.param"
+#echo "singularity exec $CENTRIFUGE_IMG centrifuge_bubble.r --dir $COLLAPSE_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > "$BUBBLE_PARAM"
+#export LAUNCHER_JOB_FILE="$BUBBLE_PARAM"
+#"$LAUNCHER_DIR/paramrun"
 echo "Finished bubble"
 
 echo "Done, look in OUT_DIR \"$OUT_DIR\""
