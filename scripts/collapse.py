@@ -56,8 +56,7 @@ def main():
             files = [a[1] for a in sorted(splits[file_type], key=lambda a: a[0])]
 
             if len(files) < 1:
-                print('WARNING: No files ending with "{}" for "{}"',
-                      file_type, fasta)
+                print('WARNING: No files ending with "{}" for "{}"'.format(file_type, fasta))
             else:
                 out_path = os.path.join(out_dir, fasta + '.' + file_type)
                 print('      Writing to "{}"'.format(out_path))

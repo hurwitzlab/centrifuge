@@ -219,8 +219,9 @@ elif [[ ! -z $IN_DIR ]] && [[ -d $IN_DIR ]]; then
         while read -r FILE; do
             BASENAME=$(basename "$FILE")
             SUM_FILE="$REPORT_DIR/$BASENAME.sum"
+            TSV_FILE="$REPORT_DIR/$BASENAME.tsv"
       
-            if [[ "$SKIP_EXISTING" -gt 0 ]] && [[ -s "$SUM_FILE" ]]; then
+            if [[ "$SKIP_EXISTING" -gt 0 ]] && [[ -s "$SUM_FILE" ]] && [[ -s "$TSV_FILE" ]]; then
                 echo "Skipping $BASENAME (sum file exists)"
             else
                 echo "$RUN_CENTRIFUGE -f -x $INDEX -U $FILE -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" >> "$CENT_PARAM"
