@@ -6,6 +6,7 @@
 library("optparse")
 library("plyr")
 library("ggplot2")
+library("R.utils")
 
 args = commandArgs(trailingOnly=TRUE)
 
@@ -95,7 +96,7 @@ names(df) <- c("Name", "Proportion", "Abundance", "genomeSize", "sample", "numRe
 #SCATTER PLOT WITH POINT SIZE
 #Set file name and bubble plot title. Stored in out.dir
 
-jpeg(filename=file.path(out.dir, paste0(file_name, ".jpeg")), width = 800, height = 800)
+png(filename=file.path(out.dir, paste0(file_name, ".png")), width = 800, height = 800)
 p2 <- ggplot(df, aes(as.factor(sample), as.factor(Name))) + geom_point(aes(size = Abundance))
 p2 <- p2 + theme(text = element_text(size=20), axis.text.x = element_text(angle = 90, hjust = 1))
 p2 <- p2 + labs(y = "Organism", x = "Sample")
@@ -105,4 +106,4 @@ print(p2)
 dev.off()
 
 write.csv(df, file = file.path(out.dir, paste0(file_name, ".csv")))
-
+printf("Done, see %s\n", out.dir)
