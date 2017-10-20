@@ -1,5 +1,12 @@
 #!/bin/bash
 
+#SBATCH -J cntrfge 
+#SBATCH -A iPlant-Collabs 
+#SBATCH -N 4
+#SBATCH -n 1
+#SBATCH -t 24:00:00
+#SBATCH -p normal
+
 # Author: Ken Youens-Clark <kyclark@email.arizona.edu>
 
 set -u
@@ -16,12 +23,11 @@ REVERSE=""
 SINGLETONS=""
 INDEX="p_compressed+h+v"
 OUT_DIR="$BIN/centrifuge-out"
-CENTRIFUGE_DIR="/work/03137/kyclark/tools/centrifuge-1.0.3-beta"
 INDEX_DIR="/work/05066/imicrobe/iplantc.org/data/centrifuge-indexes"
-MAX_SEQS_PER_FILE=100000
+MAX_SEQS_PER_FILE=1000000
 CENTRIFUGE_IMG="centrifuge-1.0.3-beta.img"
 EXCLUDE_TAXIDS=""
-SKIP_EXISTING=0
+SKIP_EXISTING=1
 
 #
 # Some needed functions
@@ -106,13 +112,8 @@ while getopts :a:d:i:f:m:o:r:s:x:kh OPT; do
     esac
 done
 
-#
-# Set up PATH, "bin" directory
-#
-if [[ -d "$CENTRIFUGE_DIR" ]]; then
-    PATH="$CENTRIFUGE_DIR:$PATH"
-else
-    echo "Cannot find CENTRIFUGE_DIR \"$CENTRIFUGE_DIR\""
+if [[ ! -e "$CENTRIFUGE_IMG" ]]; then
+    echo "Missing CENTRIFUGE_IMG \"$CENTRIFUGE_IMG\""
     exit 1
 fi
 
@@ -138,7 +139,7 @@ fi
 #
 # Verify existence of various directories
 #
-[[ ! -d $OUT_DIR ]] && mkdir -p "$OUT_DIR"
+[[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
 REPORT_DIR="$OUT_DIR/reports"
 [[ ! -d "$REPORT_DIR" ]] && mkdir -p "$REPORT_DIR"
@@ -168,7 +169,7 @@ export LAUNCHER_SCHED=interleaved
 #
 # A single FASTA
 #
-if [[ ! -z $FASTA ]]; then
+if [[ ! -z "$FASTA" ]]; then
     BASENAME=$(basename "$FASTA")
     echo "Will process single FASTA \"$BASENAME\""
     echo "$RUN_CENTRIFUGE -f -x $INDEX -U $FASTA -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" > "$CENT_PARAM"
@@ -176,7 +177,7 @@ if [[ ! -z $FASTA ]]; then
 #
 # Paired-end FASTA reads
 #
-elif [[ ! -z $FORWARD ]] && [[ ! -z $REVERSE ]]; then
+elif [[ ! -z "$FORWARD" ]] && [[ ! -z "$REVERSE" ]]; then
     BASENAME=$(basename "$FORWARD")
     echo "Will process FORWARD \"$FORWARD\" REVERSE \"$REVERSE\""
 
@@ -188,33 +189,42 @@ elif [[ ! -z $FORWARD ]] && [[ ! -z $REVERSE ]]; then
 #
 # A directory of single FASTA files
 #
-elif [[ ! -z $IN_DIR ]] && [[ -d $IN_DIR ]]; then
+elif [[ ! -z "$IN_DIR" ]] && [[ -d "$IN_DIR" ]]; then
     if [[ $MODE == 'single' ]]; then
         SPLIT_DIR="$OUT_DIR/split"
         [[ ! -d "$SPLIT_DIR" ]] && mkdir -p "$SPLIT_DIR"
     
         INPUT_FILES=$(mktemp)
-        find "$IN_DIR" -type f -size +0c > "$INPUT_FILES"
+        find "$IN_DIR" -type f -size +0c \( -name \*.fa -o -name \*.fasta \) > "$INPUT_FILES"
 
         SPLIT_PARAM="$$.split.param"
     
         i=0
         while read -r FILE; do
-            let i++
-            printf "%3d: Split %s\n" $i "$(basename "$FILE")"
             BASENAME=$(basename "$FILE")
-            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $SPLIT_DIR/$BASENAME -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
+            FILE_SPLIT_DIR="$SPLIT_DIR/$BASENAME"
+            NUM_SPLIT_FILES=0
+            if [[ -d "$FILE_SPLIT_DIR" ]]; then
+                NUM_SPLIT_FILES=$(find "$FILE_SPLIT_DIR" -type f | wc -l | awk '{print $1}')
+            fi
+
+            if [[ $NUM_SPLIT_FILES -lt 1 ]]; then
+                let i++
+                printf "%6d: Split %s\n" $i "$(basename "$FILE")"
+                echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $FILE_SPLIT_DIR -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
+            fi
         done < "$INPUT_FILES"
 
         echo "Launching splitter"
-        export LAUNCHER_PPN=4
+        export LAUNCHER_PPN=8
         export LAUNCHER_JOB_FILE="$SPLIT_PARAM"
         "$LAUNCHER_DIR/paramrun"
         rm "$SPLIT_PARAM"
     
         SPLIT_FILES=$(mktemp)
-        echo "Splitter done, found $(lc "$SPLIT_FILES") split files"
         find "$SPLIT_DIR" -type f -size +0c > "$SPLIT_FILES"
+        NUM_SPLIT=$(lc "$SPLIT_FILES")
+        echo "Splitter done, found NUM_SPLIT \"$NUM_SPLIT\""
 
         while read -r FILE; do
             BASENAME=$(basename "$FILE")
@@ -222,7 +232,7 @@ elif [[ ! -z $IN_DIR ]] && [[ -d $IN_DIR ]]; then
             TSV_FILE="$REPORT_DIR/$BASENAME.tsv"
       
             if [[ "$SKIP_EXISTING" -gt 0 ]] && [[ -s "$SUM_FILE" ]] && [[ -s "$TSV_FILE" ]]; then
-                echo "Skipping $BASENAME (sum file exists)"
+                echo "Skipping $BASENAME - sum/tsv files exist"
             else
                 echo "$RUN_CENTRIFUGE -f -x $INDEX -U $FILE -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" >> "$CENT_PARAM"
             fi
@@ -252,6 +262,7 @@ NUM_CENT_JOBS=$(lc "$CENT_PARAM")
 if [[ "$NUM_CENT_JOBS" -gt 1 ]]; then
     echo "Running \"$NUM_CENT_JOBS\" for Centrifuge \"$CENT_PARAM\""
     export LAUNCHER_JOB_FILE="$CENT_PARAM"
+    export LAUNCHER_PPN=4
     "$LAUNCHER_DIR/paramrun"
     echo "Finished Centrifuge"
 else

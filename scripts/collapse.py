@@ -5,9 +5,10 @@
 # Author: Ken Youens-Clark <kyclark@email.arizona.edu>
 
 import argparse
-import re
-import os
 import csv
+import os
+import re
+import sys
 
 # --------------------------------------------------
 def main():
@@ -18,17 +19,21 @@ def main():
     out_dir = args.out_dir
 
     if not os.path.isdir(fasta_dir):
-        print('--fasta_dir "{}" is not valid'.format(fasta_dir))
+        print('--fasta_dir "{}" is not a directory'.format(fasta_dir))
         exit(1)
 
     if not os.path.isdir(reports_dir):
-        print('--reports_dir "{}" is not valid'.format(reports_dir))
+        print('--reports_dir "{}" is not a directory'.format(reports_dir))
         exit(1)
 
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
-    fasta_files = os.listdir(fasta_dir)
+    fasta_files = []
+    for root, _, filenames in os.walk(fasta_dir):
+        for filename in filenames:
+            fasta_files.append(os.path.join(root, filename))
+
     if len(fasta_files) < 1:
         print('Found no files in --fasta_dir {}'.format(fasta_dir))
         exit(1)
@@ -39,11 +44,12 @@ def main():
         exit(1)
 
     for i, fasta in enumerate(fasta_files):
-        print('{:4}: {}'.format(i + 1, fasta))
+        basename = os.path.basename(fasta)
+        print('{:4}: {}'.format(i + 1, basename))
         basename, ext = os.path.splitext(os.path.basename(fasta))
         splits = {'tsv': [], 'sum': []}
         for split in split_files:
-            regex = '({})\.(\d+)\.({})\.(tsv|sum)'.format(basename, ext[1:])
+            regex = r'({})\.(\d+)\.({})\.(tsv|sum)'.format(basename, ext[1:])
             match = re.match(regex, split)
             if not match is None:
                 _, num, _, type_ext = match.groups()
@@ -56,9 +62,10 @@ def main():
             files = [a[1] for a in sorted(splits[file_type], key=lambda a: a[0])]
 
             if len(files) < 1:
-                print('WARNING: No files ending with "{}" for "{}"'.format(file_type, fasta))
+                msg = 'WARNING: No files ending with "{}" for "{}"'
+                print(msg.format(file_type, basename))
             else:
-                out_path = os.path.join(out_dir, fasta + '.' + file_type)
+                out_path = os.path.join(out_dir, basename + '.' + file_type)
                 print('      Writing to "{}"'.format(out_path))
                 func = write_tsv if file_type == 'tsv' else write_sum
                 func(files, open(out_path, 'w'))

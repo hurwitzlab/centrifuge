@@ -57,3 +57,6 @@ pam:
 
 pam2:
 	./submit.sh $(WORK)/pam-morris/centrifuge/filtered $(WORK)/pam-morris/filtered 'p_compressed+h+v' normal 24:00:00
+
+imicrobe:
+	sbatch -N 4 -n 4 ./run.sh -d $(WORK)/iplantc.org/data/imicrobe/projects -o $(WORK)/iplantc.org/data/imicrobe/centrifuge 
