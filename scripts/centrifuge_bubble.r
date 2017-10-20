@@ -68,6 +68,7 @@ if (!dir.exists(cent.dir)) {
 setwd(cent.dir)
 
 temp = list.files(pattern="*.tsv")
+num_files = length(temp)
 myfiles = lapply(temp, read.delim)
 sample_names <- as.list(sub("*.tsv", "", temp))
 myfiles = Map(cbind, myfiles, sample = sample_names)
@@ -96,7 +97,13 @@ names(df) <- c("Name", "Proportion", "Abundance", "genomeSize", "sample", "numRe
 #SCATTER PLOT WITH POINT SIZE
 #Set file name and bubble plot title. Stored in out.dir
 
-png(filename=file.path(out.dir, paste0(file_name, ".png")), width = 800, height = 800)
+height = 800
+extra_files = num_files - 10
+if (extra_files > 0) {
+    height = height + (extra_files * 20)
+}
+
+png(filename=file.path(out.dir, paste0(file_name, ".png")), width = 800, height = height)
 p2 <- ggplot(df, aes(as.factor(sample), as.factor(Name))) + geom_point(aes(size = Abundance))
 p2 <- p2 + theme(text = element_text(size=20), axis.text.x = element_text(angle = 90, hjust = 1))
 p2 <- p2 + labs(y = "Organism", x = "Sample")
