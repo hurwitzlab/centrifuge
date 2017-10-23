@@ -56,12 +56,6 @@ file_name  = opt$outfile
 plot_title = opt$title
 exclude    = unlist(strsplit(opt$exclude,"[[:space:]]*,[[:space:]]*"))
 
-cent.dir = "~/work/centrifuge/cent-193/"
-out.dir = "~/work/out"
-file_name = "centrifuge"
-plot_title = "Centr"
-exclude = ""
-
 #SETWD: Location of centrifuge_report.tsv files. Should all be in same directory
 if (nchar(cent.dir) == 0) {
       stop("--dir is required");
