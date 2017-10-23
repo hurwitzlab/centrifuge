@@ -66,9 +66,12 @@ def main():
                 print(msg.format(file_type, basename))
             else:
                 out_path = os.path.join(out_dir, basename + '.' + file_type)
-                print('      Writing to "{}"'.format(out_path))
-                func = write_tsv if file_type == 'tsv' else write_sum
-                func(files, open(out_path, 'w'))
+                if os.path.isfile(out_path):
+                    print('      "{}" exists, skipping'.format(out_path))
+                else:
+                    print('      Writing to "{}"'.format(out_path))
+                    func = write_tsv if file_type == 'tsv' else write_sum
+                    func(files, open(out_path, 'w'))
 
     print('Done, see output dir "{}"'.format(out_dir))
 
