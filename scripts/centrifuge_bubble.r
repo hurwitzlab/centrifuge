@@ -56,6 +56,12 @@ file_name  = opt$outfile
 plot_title = opt$title
 exclude    = unlist(strsplit(opt$exclude,"[[:space:]]*,[[:space:]]*"))
 
+cent.dir = "~/work/centrifuge/cent-193/"
+out.dir = "~/work/out"
+file_name = "centrifuge"
+plot_title = "Centr"
+exclude = ""
+
 #SETWD: Location of centrifuge_report.tsv files. Should all be in same directory
 if (nchar(cent.dir) == 0) {
       stop("--dir is required");
@@ -65,12 +71,16 @@ if (!dir.exists(cent.dir)) {
       stop(paste("Bad centrifuge directory: ", cent.dir))
 }
 
+if (!dir.exists(out.dir)) {
+  dir.create(out.dir)
+}
+
 setwd(cent.dir)
 
 temp = list.files(pattern="*.tsv")
-num_files = length(temp)
 myfiles = lapply(temp, read.delim)
 sample_names <- as.list(sub("*.tsv", "", temp))
+num_samples = length(sample_names)
 myfiles = Map(cbind, myfiles, sample = sample_names)
 
 #Filter settings, default is to remove human and synthetic constructs
@@ -97,13 +107,19 @@ names(df) <- c("Name", "Proportion", "Abundance", "genomeSize", "sample", "numRe
 #SCATTER PLOT WITH POINT SIZE
 #Set file name and bubble plot title. Stored in out.dir
 
-height = 800
-extra_files = num_files - 10
-if (extra_files > 0) {
-    height = height + (extra_files * 20)
+width = 800
+extra_samples = num_samples - 10
+if (extra_samples > 0) {
+    width = width + (extra_samples * 10)
 }
 
-png(filename=file.path(out.dir, paste0(file_name, ".png")), width = 800, height = height)
+height = 800
+extra_rows = nrow(df) - 10
+if (extra_rows > 0) {
+  height = height + (extra_rows * 10)
+}
+
+png(filename=file.path(out.dir, paste0(file_name, ".png")), width = width, height = height)
 p2 <- ggplot(df, aes(as.factor(sample), as.factor(Name))) + geom_point(aes(size = Abundance))
 p2 <- p2 + theme(text = element_text(size=20), axis.text.x = element_text(angle = 90, hjust = 1))
 p2 <- p2 + labs(y = "Organism", x = "Sample")
