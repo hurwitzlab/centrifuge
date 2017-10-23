@@ -10,6 +10,7 @@ clean:
 	rm -f $(IMG_NAME)
 
 img: clean
+	#sudo $(SINGULARITY) build $(IMG_NAME) $(DEF_NAME)
 	sudo $(SINGULARITY) create --size $(SIZE) $(IMG_NAME)
 	sudo $(SINGULARITY) bootstrap $(IMG_NAME) $(DEF_NAME)
 
@@ -17,4 +18,4 @@ shell:
 	sudo $(SINGULARITY) shell --writable -B $(shell pwd):/tmp $(IMG_NAME)
 
 scp:
-	scp $(IMG_NAME) stampede:/work/03137/kyclark/centrifuge-0.0.1/stampede
+	scp $(IMG_NAME) stampede:/work/03137/kyclark/centrifuge-0.0.2/stampede
