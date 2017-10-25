@@ -273,7 +273,6 @@ if [[ $NUM_INPUT -gt 0 ]]; then
         fi
     done < "$SPLIT_FILES"
 
-    rm "$INPUT_FILES"
     rm "$SPLIT_FILES"
     #rm -rf "$SPLIT_DIR"
 fi
@@ -301,6 +300,8 @@ COLLAPSE_DIR="$OUT_DIR/collapsed"
 echo "Collapsing reports"
 singularity exec $CENTRIFUGE_IMG collapse.py -l "$INPUT_FILES" -r "$REPORT_DIR" -o "$COLLAPSE_DIR"
 echo "Finished collapse"
+
+rm "$INPUT_FILES"
 
 #
 # Create bubble plot
