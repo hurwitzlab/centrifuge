@@ -8,7 +8,7 @@ clean:
 	find . \( -name \*.out -o -name \*.param \) -exec rm {} \;
 
 up:
-	copy-from-manifest.pl6 $(WORK)/$(APP)
+	copy_from_manifest.py
 
 app:
 	apps-addupdate -F app.json

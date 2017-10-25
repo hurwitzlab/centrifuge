@@ -6,7 +6,7 @@
     "defaultMaxRunTime": "12:00:00",
     "defaultNodeCount": 1,
     "defaultQueue": "serial",
-    "deploymentPath": "kyclark/applications/centrifuge-0.0.1/stampede",
+    "deploymentPath": "kyclark/applications/centrifuge-0.0.3/stampede",
     "deploymentSystem": "data.iplantcollaborative.org",
     "executionSystem": "tacc-stampede-kyclark",
     "executionType": "HPC",
@@ -21,9 +21,9 @@
     "tags": ["centrifuge","taxonomy","classifier"],
     "templatePath": "template.sh",
     "testPath": "test.sh",
-    "version": "0.0.1",
+    "version": "0.0.3",
     "inputs": [{
-        "id": "IN_DIR",
+        "id": "QUERY",
         "value": {
             "default": "",
             "order": 0,
@@ -34,12 +34,14 @@
         "semantics": {
             "ontology": ["http://sswapmeet.sswap.info/mime/application/X-bam"],
             "minCardinality": 1,
+            "maxCardinality":-1,
             "fileTypes": ["raw-0"]
         },
         "details": {
             "description": "",
-            "label": "Directory of unpaired FASTA files",
-            "argument": "-d ",
+            "label": "Input files or directories",
+            "argument": "-q ",
+            "repeatArgument":true,
             "showArgument": true
         }
     }],

@@ -14,15 +14,15 @@ set -u
 #
 # Set up defaults for inputs, constants
 #
-BIN=$( cd "$( dirname "$0" )" && pwd )
 IN_DIR=""
+QUERY=""
 MODE="single"
 FASTA=""
 FORWARD=""
 REVERSE=""
 SINGLETONS=""
 INDEX="p_compressed+h+v"
-OUT_DIR="$BIN/centrifuge-out"
+OUT_DIR="$PWD/centrifuge-out"
 INDEX_DIR="/work/05066/imicrobe/iplantc.org/data/centrifuge-indexes"
 MAX_SEQS_PER_FILE=1000000
 CENTRIFUGE_IMG="centrifuge-1.0.3-beta.img"
@@ -37,12 +37,16 @@ function lc() {
 }
 
 function HELP() {
+    printf "Usage:\n  %s -q DIR_OR_FILE\n\n" "$(basename "$0")"
     printf "Usage:\n  %s -d IN_DIR\n\n" "$(basename "$0")"
     printf "Usage:\n  %s -a FASTA\n\n" "$(basename "$0")"
     printf "Usage:\n  %s -f FASTA_r1 -r FASTA_r2 [-s SINGLETONS]\n\n" \
       "$(basename "$0")"
   
     echo "Required arguments:"
+    echo " -q DIR_OR_FILE"
+    echo ""
+    echo "OR"
     echo " -d IN_DIR (single-only)"
     echo ""
     echo "OR"
@@ -67,7 +71,7 @@ function HELP() {
 #
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:i:f:m:o:r:s:x:kh OPT; do
+while getopts :a:d:i:f:m:o:q:r:s:x:kh OPT; do
     case $OPT in
         a)
             FASTA="$OPTARG"
@@ -92,6 +96,9 @@ while getopts :a:d:i:f:m:o:r:s:x:kh OPT; do
             ;;
         o)
             OUT_DIR="$OPTARG"
+            ;;
+        q)
+            QUERY="$QUERY $OPTARG"
             ;;
         r)
             REVERSE="$OPTARG"
@@ -166,10 +173,12 @@ export LAUNCHER_WORKDIR="$PWD"
 export LAUNCHER_RMI=SLURM
 export LAUNCHER_SCHED=interleaved
 
+INPUT_FILES=$(mktemp)
+
 #
 # A single FASTA
 #
-if [[ ! -z "$FASTA" ]]; then
+if [[ -n "$FASTA" ]]; then
     BASENAME=$(basename "$FASTA")
     echo "Will process single FASTA \"$BASENAME\""
     echo "$RUN_CENTRIFUGE -f -x $INDEX -U $FASTA -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" > "$CENT_PARAM"
@@ -177,7 +186,7 @@ if [[ ! -z "$FASTA" ]]; then
 #
 # Paired-end FASTA reads
 #
-elif [[ ! -z "$FORWARD" ]] && [[ ! -z "$REVERSE" ]]; then
+elif [[ -n "$FORWARD" ]] && [[ -n "$REVERSE" ]]; then
     BASENAME=$(basename "$FORWARD")
     echo "Will process FORWARD \"$FORWARD\" REVERSE \"$REVERSE\""
 
@@ -189,62 +198,27 @@ elif [[ ! -z "$FORWARD" ]] && [[ ! -z "$REVERSE" ]]; then
 #
 # A directory of single FASTA files
 #
-elif [[ ! -z "$IN_DIR" ]] && [[ -d "$IN_DIR" ]]; then
+elif [[ -n "$IN_DIR" ]] && [[ -d "$IN_DIR" ]]; then
     if [[ $MODE == 'single' ]]; then
-        SPLIT_DIR="$OUT_DIR/split"
-        [[ ! -d "$SPLIT_DIR" ]] && mkdir -p "$SPLIT_DIR"
-    
-        INPUT_FILES=$(mktemp)
         find "$IN_DIR" -type f -size +0c \( -name \*.fa -o -name \*.fasta \) > "$INPUT_FILES"
-
-        SPLIT_PARAM="$$.split.param"
-    
-        i=0
-        while read -r FILE; do
-            BASENAME=$(basename "$FILE")
-            FILE_SPLIT_DIR="$SPLIT_DIR/$BASENAME"
-            NUM_SPLIT_FILES=0
-            if [[ -d "$FILE_SPLIT_DIR" ]]; then
-                NUM_SPLIT_FILES=$(find "$FILE_SPLIT_DIR" -type f | wc -l | awk '{print $1}')
-            fi
-
-            if [[ $NUM_SPLIT_FILES -lt 1 ]]; then
-                let i++
-                printf "%6d: Split %s\n" $i "$(basename "$FILE")"
-                echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $FILE_SPLIT_DIR -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
-            fi
-        done < "$INPUT_FILES"
-
-        echo "Launching splitter"
-        export LAUNCHER_PPN=8
-        export LAUNCHER_JOB_FILE="$SPLIT_PARAM"
-        "$LAUNCHER_DIR/paramrun"
-        rm "$SPLIT_PARAM"
-    
-        SPLIT_FILES=$(mktemp)
-        find "$SPLIT_DIR" -type f -size +0c > "$SPLIT_FILES"
-        NUM_SPLIT=$(lc "$SPLIT_FILES")
-        echo "Splitter done, found NUM_SPLIT \"$NUM_SPLIT\""
-
-        while read -r FILE; do
-            BASENAME=$(basename "$FILE")
-            SUM_FILE="$REPORT_DIR/$BASENAME.sum"
-            TSV_FILE="$REPORT_DIR/$BASENAME.tsv"
-      
-            if [[ "$SKIP_EXISTING" -gt 0 ]] && [[ -s "$SUM_FILE" ]] && [[ -s "$TSV_FILE" ]]; then
-                echo "Skipping $BASENAME - sum/tsv files exist"
-            else
-                echo "$RUN_CENTRIFUGE -f -x $INDEX -U $FILE -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" >> "$CENT_PARAM"
-            fi
-        done < "$SPLIT_FILES"
-    
-        rm "$INPUT_FILES"
-        rm "$SPLIT_FILES"
-        #rm -rf "$SPLIT_DIR"
     else
         echo "Can't yet run IN_DIR with 'paired' mode"
         exit 1
     fi
+
+#
+# Either files and/or directories
+#
+elif [[ -n "$QUERY" ]]; then
+    for QRY in $QUERY; do
+        if [[ -d "$QRY" ]]; then
+            find "$QRY" -type f -not -name .\* >> "$INPUT_FILES"
+        elif [[ -f "$QRY" ]]; then
+            echo "$QRY" >> "$INPUT_FILES"
+        else 
+            echo "QUERY ARG \"$QRY\" is neither dir nor file"
+        fi
+    done
 
 #
 # Else "error"
@@ -252,6 +226,56 @@ elif [[ ! -z "$IN_DIR" ]] && [[ -d "$IN_DIR" ]]; then
 else
     echo "Must have -d IN_DIR/-a FASTA/-f FORWARD & -r REVERSE [-s SINGLETON]"
     exit 1
+fi
+
+NUM_INPUT=$(lc "$INPUT_FILES")
+if [[ $NUM_INPUT -gt 0 ]]; then
+    SPLIT_DIR="$OUT_DIR/split"
+    [[ ! -d "$SPLIT_DIR" ]] && mkdir -p "$SPLIT_DIR"
+    SPLIT_PARAM="$$.split.param"
+
+    i=0
+    while read -r FILE; do
+        BASENAME=$(basename "$FILE")
+        FILE_SPLIT_DIR="$SPLIT_DIR/$BASENAME"
+        NUM_SPLIT_FILES=0
+        if [[ -d "$FILE_SPLIT_DIR" ]]; then
+            NUM_SPLIT_FILES=$(find "$FILE_SPLIT_DIR" -type f | wc -l | awk '{print $1}')
+        fi
+
+        if [[ $NUM_SPLIT_FILES -lt 1 ]]; then
+            let i++
+            printf "%6d: Split %s\n" $i "$(basename "$FILE")"
+            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $FILE_SPLIT_DIR -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
+        fi
+    done < "$INPUT_FILES"
+
+    echo "Launching splitter"
+    export LAUNCHER_PPN=8
+    export LAUNCHER_JOB_FILE="$SPLIT_PARAM"
+    "$LAUNCHER_DIR/paramrun"
+    rm "$SPLIT_PARAM"
+
+    SPLIT_FILES=$(mktemp)
+    find "$SPLIT_DIR" -type f -size +0c > "$SPLIT_FILES"
+    NUM_SPLIT=$(lc "$SPLIT_FILES")
+    echo "Splitter done, found NUM_SPLIT \"$NUM_SPLIT\""
+
+    while read -r FILE; do
+        BASENAME=$(basename "$FILE")
+        SUM_FILE="$REPORT_DIR/$BASENAME.sum"
+        TSV_FILE="$REPORT_DIR/$BASENAME.tsv"
+  
+        if [[ "$SKIP_EXISTING" -gt 0 ]] && [[ -s "$SUM_FILE" ]] && [[ -s "$TSV_FILE" ]]; then
+            echo "Skipping $BASENAME - sum/tsv files exist"
+        else
+            echo "$RUN_CENTRIFUGE -f -x $INDEX -U $FILE -S $REPORT_DIR/$BASENAME.sum --report-file $REPORT_DIR/$BASENAME.tsv" >> "$CENT_PARAM"
+        fi
+    done < "$SPLIT_FILES"
+
+    rm "$INPUT_FILES"
+    rm "$SPLIT_FILES"
+    #rm -rf "$SPLIT_DIR"
 fi
 
 #
@@ -275,7 +299,7 @@ fi
 #
 COLLAPSE_DIR="$OUT_DIR/collapsed"
 echo "Collapsing reports"
-singularity exec $CENTRIFUGE_IMG collapse.py -f "$IN_DIR" -r "$REPORT_DIR" -o "$COLLAPSE_DIR"
+singularity exec $CENTRIFUGE_IMG collapse.py -l "$INPUT_FILES" -r "$REPORT_DIR" -o "$COLLAPSE_DIR"
 echo "Finished collapse"
 
 #

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "IN_DIR \"${IN_DIR}\""
+echo "QUERY \"${QUERY}\""
 echo "INDEX  \"${INDEX}\""
 
 sh run.sh ${IN_DIR} ${INDEX}

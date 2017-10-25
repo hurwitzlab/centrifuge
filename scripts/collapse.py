@@ -11,37 +11,70 @@ import re
 import sys
 
 # --------------------------------------------------
+def get_args():
+    """get args"""
+    parser = argparse.ArgumentParser(description='Split FASTA files')
+    parser.add_argument('-f', '--fasta_dir', help='FASTA dir',
+                        type=str, metavar='STR')
+    parser.add_argument('-l', '--file_list', help='File listing the input files',
+                        type=str, metavar='STR')
+    parser.add_argument('-r', '--reports_dir', help='Centrifuge reports dir',
+                        type=str, metavar='STR', required=True)
+    parser.add_argument('-o', '--out_dir', help='Output directory',
+                        type=str, metavar='DIR', 
+                        default=os.path.join(os.getcwd(), 'collapsed'))
+    return parser.parse_args()
+
+# --------------------------------------------------
 def main():
     """main"""
     args = get_args()
     fasta_dir = args.fasta_dir
+    file_list = args.file_list
     reports_dir = args.reports_dir
     out_dir = args.out_dir
 
-    if not os.path.isdir(fasta_dir):
+    if not fasta_dir and not file_list:
+        print('--fasta_dir or --file_list is required')
+        sys.exit(1)
+
+    if fasta_dir and not os.path.isdir(fasta_dir):
         print('--fasta_dir "{}" is not a directory'.format(fasta_dir))
-        exit(1)
+        sys.exit(1)
+
+    if file_list and not os.path.isfile(file_list):
+        print('--file_list "{}" is not a file'.format(file_list))
+        sys.exit(1)
 
     if not os.path.isdir(reports_dir):
         print('--reports_dir "{}" is not a directory'.format(reports_dir))
-        exit(1)
+        sys.exit(1)
 
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
     fasta_files = []
-    for root, _, filenames in os.walk(fasta_dir):
-        for filename in filenames:
-            fasta_files.append(os.path.join(root, filename))
+    if fasta_dir:
+        for root, _, filenames in os.walk(fasta_dir):
+            for filename in filenames:
+                fasta_files.append(os.path.join(root, filename))
+        if len(fasta_files) < 1:
+            print('Found no files in --fasta_dir {}'.format(fasta_dir))
+            sys.exit(1)
+    else:
+        for file in open(file_list).read().splitlines():
+            if os.path.isfile(file):
+                fasta_files.append(file)
 
-    if len(fasta_files) < 1:
-        print('Found no files in --fasta_dir {}'.format(fasta_dir))
-        exit(1)
+        if len(fasta_files) < 1:
+            print('Found no files in --file_list {}'.format(file_list))
+            sys.exit(1)
+
 
     split_files = os.listdir(reports_dir)
     if len(split_files) < 1:
         print('Found no files in --reports_dir {}'.format(reports_dir))
-        exit(1)
+        sys.exit(1)
 
     for i, fasta in enumerate(fasta_files):
         basename = os.path.basename(fasta)
@@ -120,18 +153,6 @@ def write_sum(files, out_fh):
 
         for line in in_fh:
             out_fh.write(line)
-
-# --------------------------------------------------
-def get_args():
-    """get args"""
-    parser = argparse.ArgumentParser(description='Split FASTA files')
-    parser.add_argument('-f', '--fasta_dir', help='FASTA dir',
-                        type=str, metavar='STR', required=True)
-    parser.add_argument('-r', '--reports_dir', help='Centrifuge reports dir',
-                        type=str, metavar='STR', required=True)
-    parser.add_argument('-o', '--out_dir', help='Output directory',
-                        type=str, metavar='DIR', required=True)
-    return parser.parse_args()
 
 # --------------------------------------------------
 if __name__ == '__main__':

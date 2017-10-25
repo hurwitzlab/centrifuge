@@ -1,11 +1,13 @@
 {
-  "name": "test-cent",
-  "appId": "centrifuge-0.0.1",
+  "name": "centrifuge-test-1508877900",
+  "appId": "centrifuge-0.0.3",
   "archive": true,
   "inputs": {
-    "IN_DIR": "agave://data.iplantcollaborative.org/kyclark/data/pov/fasta"
+    "QUERY": [ 
+      "agave://data.iplantcollaborative.org/kyclark/data/dolphin/fasta/Dolphin_1_z04.fa",
+      "agave://data.iplantcollaborative.org/kyclark/data/dolphin/fasta/Dolphin_2_z09.fa"
+    ]
   },
   "parameter": {
-    "INDEX": "p_compressed+h+v"
   }
 }
