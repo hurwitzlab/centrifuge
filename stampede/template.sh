@@ -3,4 +3,4 @@
 echo "QUERY \"${QUERY}\""
 echo "INDEX  \"${INDEX}\""
 
-sh run.sh ${IN_DIR} ${INDEX}
+sh run.sh ${QUERY} ${INDEX}
