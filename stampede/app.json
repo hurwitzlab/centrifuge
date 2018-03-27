@@ -1,4 +1,8 @@
 {
+    "name": "centrifuge",
+    "version": "0.0.5",
+    "shortDescription": "Classifier for metagenomic sequences",
+    "longDescription": "Classifier for metagenomic sequences",
     "available": true,
     "checkpointable": false,
     "defaultMemoryPerNode": 32,
@@ -12,62 +16,101 @@
     "executionType": "HPC",
     "helpURI": "https://ccb.jhu.edu/software/centrifuge/manual.shtml",
     "label": "Centrifuge",
-    "longDescription": "Classifier for metagenomic sequences",
-    "modules": [],
-    "name": "centrifuge",
-    "ontology": ["http://sswapmeet.sswap.info/agave/apps/Application"],
     "parallelism": "SERIAL",
-    "shortDescription": "Classifier for metagenomic sequences",
-    "tags": ["centrifuge","taxonomy","classifier"],
     "templatePath": "template.sh",
     "testPath": "test.sh",
-    "version": "0.0.4",
-    "inputs": [{
-        "id": "QUERY",
-        "value": {
-            "default": "",
-            "order": 0,
-            "required": true,
-            "validator": "",
-            "visible": true
-        },
-        "semantics": {
-            "ontology": ["http://sswapmeet.sswap.info/mime/application/X-bam"],
-            "minCardinality": 1,
-            "maxCardinality":-1,
-            "fileTypes": ["raw-0"]
-        },
-        "details": {
-            "description": "",
-            "label": "Input files or directories",
-            "argument": "-q ",
-            "repeatArgument":true,
-            "showArgument": true
+    "modules": [],
+    "tags": [
+        "centrifuge",
+        "taxonomy",
+        "classifier"
+    ],
+    "ontology": [
+        "http://sswapmeet.sswap.info/agave/apps/Application"
+    ],
+    "inputs": [
+        {
+            "id": "QUERY",
+            "value": {
+                "default": "",
+                "order": 0,
+                "validator": "",
+                "required": true,
+                "visible": true,
+                "enquote": false
+            },
+            "semantics": {
+                "ontology": [
+                    "http://sswapmeet.sswap.info/mime/application/X-bam"
+                ],
+                "minCardinality": 1,
+                "maxCardinality": -1,
+                "fileTypes": [
+                    "raw-0"
+                ]
+            },
+            "details": {
+                "description": "",
+                "label": "Input files or directories",
+                "argument": "-q ",
+                "repeatArgument": true,
+                "showArgument": true
+            }
         }
-    }],
+    ],
     "parameters": [
-       {
-        "id": "INDEX",
-        "value": {
-            "type": "enumeration",
-            "default": "p_compressed+h+v",
-            "order": 1,
-            "required": false,
-            "enumValues": [
-              { "nt": "NCBI nucleotide non-redundant sequences" },
-              { "p_compressed" : "Bacteria, Archaea (compressed)" },
-              { "p_compressed+h+v": "Bacteria, Archaea, Viruses, Human (compressed)" },
-              { "p+h+v": "Bacteria, Archaea, Viruses, Human" }
-            ],
-            "visible": true
+        {
+            "id": "INDEX",
+            "value": {
+                "default": "p_compressed+h+v",
+                "type": "enum",
+                "order": 1,
+                "validator": "",
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "enumValues": [
+                    {
+                        "nt": "NCBI nucleotide non-redundant sequences"
+                    },
+                    {
+                        "p_compressed": "Bacteria, Archaea (compressed)"
+                    },
+                    {
+                        "p_compressed+h+v": "Bacteria, Archaea, Viruses, Human (compressed)"
+                    },
+                    {
+                        "p+h+v": "Bacteria, Archaea, Viruses, Human"
+                    }
+                ]
+            },
+            "details": {
+                "description": "Index to use for classification",
+                "label": "Index name",
+                "argument": "-i ",
+                "repeatArgument": false,
+                "showArgument": true
+            }
         },
-        "details": {
-            "description": "Index to use for classification",
-            "label": "Index name",
-            "argument": "-i ",
-            "showArgument": true
+        {
+            "id": "EXCLUDE_TAXIDS",
+            "value": {
+                "default": "",
+                "type": "string",
+                "order": 2,
+                "validator": "",
+                "required": false,
+                "visible": true,
+                "enquote": false
+            },
+            "details": {
+                "description": "NCBI Taxon IDs that are excluded from output and abundance calculations",
+                "label": "Exclude Taxids",
+                "argument": "-x",
+                "repeatArgument": false,
+                "showArgument": true
+            }
         }
-      }
     ],
     "outputs": []
 }
