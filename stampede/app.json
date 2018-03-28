@@ -10,7 +10,7 @@
     "defaultMaxRunTime": "12:00:00",
     "defaultNodeCount": 1,
     "defaultQueue": "normal",
-    "deploymentPath": "kyclark/applications/centrifuge-0.0.4/stampede",
+    "deploymentPath": "kyclark/applications/centrifuge-0.0.5/stampede",
     "deploymentSystem": "data.iplantcollaborative.org",
     "executionSystem": "tacc-stampede2-kyclark",
     "executionType": "HPC",
@@ -19,7 +19,7 @@
     "parallelism": "SERIAL",
     "templatePath": "template.sh",
     "testPath": "test.sh",
-    "modules": [],
+    "modules": ["tacc-singularity","launcher"],
     "tags": [
         "centrifuge",
         "taxonomy",
