@@ -62,10 +62,9 @@
         {
             "id": "INDEX",
             "value": {
-                "default": "enumeration",
+                "default": "nt",
                 "type": "enumeration",
                 "order": 1,
-                "validator": "",
                 "required": false,
                 "visible": true,
                 "enquote": false,
@@ -95,13 +94,13 @@
         {
             "id": "EXCLUDE_TAXIDS",
             "value": {
-                "default": "string",
+                "default": "",
                 "type": "string",
                 "order": 2,
-                "validator": "",
                 "required": false,
                 "visible": true,
-                "enquote": false
+                "enquote": false,
+                "validator": ""
             },
             "details": {
                 "description": "NCBI Taxon IDs that are excluded from output and abundance calculations",
