@@ -1,11 +1,11 @@
 {
-  "name": "centrifuge-test-1508877900",
-  "appId": "centrifuge-0.0.3",
+  "name": "centrifuge-dolphin",
+  "appId": "centrifuge-0.0.4",
   "archive": true,
   "inputs": {
     "QUERY": [ 
-      "agave://data.iplantcollaborative.org/kyclark/data/dolphin/fasta/Dolphin_1_z04.fa",
-      "agave://data.iplantcollaborative.org/kyclark/data/dolphin/fasta/Dolphin_2_z09.fa"
+      "kyclark/data/dolphin/fasta/Dolphin_1_z04.fa",
+      "kyclark/data/dolphin/fasta/Dolphin_2_z09.fa"
     ]
   },
   "parameter": {

@@ -1,4 +1,4 @@
-APP = centrifuge-0.0.1
+APP = centrifuge-0.0.4
 EMAIL = kyclark@email.arizona.edu
 
 run: clean

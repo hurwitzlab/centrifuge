@@ -1,73 +1,115 @@
 {
+    "name": "centrifuge",
+    "version": "0.0.5",
+    "shortDescription": "Classifier for metagenomic sequences",
+    "longDescription": "Centrifuge is a microbial classification engine that enables rapid, accurate and sensitive labeling of reads and quantification of species on desktop computers. The system uses a indexing scheme based on the Burrows-Wheeler transform (BWT) and the Ferragina-Manzini (FM) index optimized specifically for the metagenomic classification problem. Centrifuge requires a relatively small index (5.8 GB for all complete bacterial and viral genomes plus the human genome) and classifies sequences at a very high speed, allowing it to process the millions of reads from a typical high-throughput DNA sequencing run within a few minutes. Together these advances enable timely and accurate analysis of large metagenomics data sets on conventional desktop computers.",
     "available": true,
     "checkpointable": false,
     "defaultMemoryPerNode": 32,
     "defaultProcessorsPerNode": 16,
     "defaultMaxRunTime": "12:00:00",
     "defaultNodeCount": 1,
-    "defaultQueue": "serial",
-    "deploymentPath": "kyclark/applications/centrifuge-0.0.3/stampede",
+    "defaultQueue": "normal",
+    "deploymentPath": "kyclark/applications/centrifuge-0.0.5/stampede",
     "deploymentSystem": "data.iplantcollaborative.org",
-    "executionSystem": "tacc-stampede-kyclark",
+    "executionSystem": "tacc-stampede2-kyclark",
     "executionType": "HPC",
     "helpURI": "https://ccb.jhu.edu/software/centrifuge/manual.shtml",
     "label": "Centrifuge",
-    "longDescription": "Classifier for metagenomic sequences",
-    "modules": [],
-    "name": "centrifuge",
-    "ontology": ["http://sswapmeet.sswap.info/agave/apps/Application"],
     "parallelism": "SERIAL",
-    "shortDescription": "Classifier for metagenomic sequences",
-    "tags": ["centrifuge","taxonomy","classifier"],
     "templatePath": "template.sh",
     "testPath": "test.sh",
-    "version": "0.0.3",
-    "inputs": [{
-        "id": "QUERY",
-        "value": {
-            "default": "",
-            "order": 0,
-            "required": true,
-            "validator": "",
-            "visible": true
-        },
-        "semantics": {
-            "ontology": ["http://sswapmeet.sswap.info/mime/application/X-bam"],
-            "minCardinality": 1,
-            "maxCardinality":-1,
-            "fileTypes": ["raw-0"]
-        },
-        "details": {
-            "description": "",
-            "label": "Input files or directories",
-            "argument": "-q ",
-            "repeatArgument":true,
-            "showArgument": true
+    "modules": [],
+    "tags": [
+        "centrifuge",
+        "taxonomy",
+        "classifier"
+    ],
+    "ontology": [
+        "http://sswapmeet.sswap.info/agave/apps/Application"
+    ],
+    "inputs": [
+        {
+            "id": "QUERY",
+            "value": {
+                "default": "",
+                "order": 0,
+                "validator": "",
+                "required": true,
+                "visible": true,
+                "enquote": false
+            },
+            "semantics": {
+                "ontology": [
+                    "http://sswapmeet.sswap.info/mime/application/X-bam"
+                ],
+                "minCardinality": 1,
+                "maxCardinality": -1,
+                "fileTypes": [
+                    "raw-0"
+                ]
+            },
+            "details": {
+                "description": "",
+                "label": "Input files or directories",
+                "argument": "-q ",
+                "repeatArgument": true,
+                "showArgument": true
+            }
         }
-    }],
+    ],
     "parameters": [
-       {
-        "id": "INDEX",
-        "value": {
-            "type": "enumeration",
-            "default": "p_compressed+h+v",
-            "order": 1,
-            "required": false,
-            "enumValues": [
-              { "nt": "NCBI nucleotide non-redundant sequences" },
-              { "p_compressed" : "Bacteria, Archaea (compressed)" },
-              { "p_compressed+h+v": "Bacteria, Archaea, Viruses, Human (compressed)" },
-              { "p+h+v": "Bacteria, Archaea, Viruses, Human" }
-            ],
-            "visible": true
+        {
+            "id": "INDEX",
+            "value": {
+                "default": "nt",
+                "type": "enumeration",
+                "order": 1,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "enumValues": [
+                    {
+                        "nt": "NCBI nucleotide non-redundant sequences"
+                    },
+                    {
+                        "p_compressed": "Bacteria, Archaea (compressed)"
+                    },
+                    {
+                        "p_compressed+h+v": "Bacteria, Archaea, Viruses, Human (compressed)"
+                    },
+                    {
+                        "p+h+v": "Bacteria, Archaea, Viruses, Human"
+                    }
+                ]
+            },
+            "details": {
+                "description": "Index to use for classification",
+                "label": "Index name",
+                "argument": "-i ",
+                "repeatArgument": false,
+                "showArgument": true
+            }
         },
-        "details": {
-            "description": "Index to use for classification",
-            "label": "Index name",
-            "argument": "-i ",
-            "showArgument": true
+        {
+            "id": "EXCLUDE_TAXIDS",
+            "value": {
+                "default": "",
+                "type": "string",
+                "order": 2,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "NCBI Taxon IDs that are excluded from output and abundance calculations",
+                "label": "Exclude Tax IDs",
+                "argument": "-x",
+                "repeatArgument": false,
+                "showArgument": true
+            }
         }
-      }
     ],
     "outputs": []
 }

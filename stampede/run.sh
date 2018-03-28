@@ -9,6 +9,9 @@
 
 # Author: Ken Youens-Clark <kyclark@email.arizona.edu>
 
+module load tacc-singularity 
+module load launcher
+
 set -u
 
 #
@@ -28,6 +31,7 @@ MAX_SEQS_PER_FILE=1000000
 CENTRIFUGE_IMG="centrifuge-1.0.3-beta.img"
 EXCLUDE_TAXIDS=""
 SKIP_EXISTING=1
+PARAMRUN="$TACC_LAUNCHER_DIR/paramrun"
 
 #
 # Some needed functions
@@ -144,7 +148,7 @@ else
 fi
 
 #
-# Verify existence of various directories
+# Verify existence of various directories, files
 #
 [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
@@ -153,6 +157,16 @@ REPORT_DIR="$OUT_DIR/reports"
 
 PLOT_DIR="$OUT_DIR/plots"
 [[ ! -d "$PLOT_DIR" ]] && mkdir -p "$PLOT_DIR"
+
+if [[ ! -d "$TACC_LAUNCHER_DIR" ]]; then
+    echo "Cannot find TACC_LAUNCHER_DIR \"$TACC_LAUNCHER_DIR\""
+    exit 1
+fi
+
+if [[ ! -f "$PARAMRUN" ]]; then
+    echo "Cannot find PARAMRUN \"$PARAM_RUN\""
+    exit 1
+fi
 
 #
 # Create, null-out command file for running Centrifuge
@@ -167,8 +181,8 @@ RUN_CENTRIFUGE="CENTRIFUGE_INDEXES=$INDEX_DIR singularity run $CENTRIFUGE_IMG $E
 #
 # Set up LAUNCHER env
 #
-export LAUNCHER_DIR="$HOME/src/launcher"
-export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
+#export LAUNCHER_DIR="$HOME/src/launcher"
+#export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
 export LAUNCHER_WORKDIR="$PWD"
 export LAUNCHER_RMI=SLURM
 export LAUNCHER_SCHED=interleaved
@@ -253,7 +267,7 @@ if [[ $NUM_INPUT -gt 0 ]]; then
     echo "Launching splitter"
     export LAUNCHER_PPN=8
     export LAUNCHER_JOB_FILE="$SPLIT_PARAM"
-    "$LAUNCHER_DIR/paramrun"
+    "$TACC_LAUNCHER_DIR/paramrun"
     rm "$SPLIT_PARAM"
 
     SPLIT_FILES=$(mktemp)
@@ -273,7 +287,6 @@ if [[ $NUM_INPUT -gt 0 ]]; then
         fi
     done < "$SPLIT_FILES"
 
-    rm "$INPUT_FILES"
     rm "$SPLIT_FILES"
     #rm -rf "$SPLIT_DIR"
 fi
@@ -283,7 +296,7 @@ fi
 # Run "interleaved" to ensure this finishes before bubble
 #
 NUM_CENT_JOBS=$(lc "$CENT_PARAM")
-if [[ "$NUM_CENT_JOBS" -gt 1 ]]; then
+if [[ "$NUM_CENT_JOBS" -gt 0 ]]; then
     echo "Running \"$NUM_CENT_JOBS\" for Centrifuge \"$CENT_PARAM\""
     export LAUNCHER_JOB_FILE="$CENT_PARAM"
     export LAUNCHER_PPN=4
@@ -301,6 +314,8 @@ COLLAPSE_DIR="$OUT_DIR/collapsed"
 echo "Collapsing reports"
 singularity exec $CENTRIFUGE_IMG collapse.py -l "$INPUT_FILES" -r "$REPORT_DIR" -o "$COLLAPSE_DIR"
 echo "Finished collapse"
+
+rm "$INPUT_FILES"
 
 #
 # Create bubble plot
