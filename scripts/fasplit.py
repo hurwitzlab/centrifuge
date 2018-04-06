@@ -5,7 +5,26 @@
 
 import argparse
 import os
+import gzip
 from Bio import SeqIO
+
+# --------------------------------------------------
+def get_args():
+    """get args"""
+    parser = argparse.ArgumentParser(
+        description='Split FASTA files',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-f', '--fasta', help='FASTA input file',
+                        type=str, metavar='FILE', required=True)
+
+    parser.add_argument('-n', '--num', help='Number of records per file',
+                        type=int, metavar='NUM', default=50)
+
+    parser.add_argument('-o', '--out_dir', help='Output directory',
+                        type=str, metavar='DIR', default='fasplit')
+
+    return parser.parse_args()
 
 # --------------------------------------------------
 def main():
@@ -32,7 +51,14 @@ def main():
     out_fh = None
     basename, ext = os.path.splitext(os.path.basename(fasta))
 
-    for record in SeqIO.parse(fasta, "fasta"):
+    handle = None
+    if ext == ".gz":
+        handle = gzip.open(fasta, "rt")
+        basename, ext = os.path.splitext(basename)
+    else:
+        handle = open(fasta, "rt")
+
+    for record in SeqIO.parse(handle, "fasta"):
         if i == max_per:
             i = 0
             if out_fh is not None:
@@ -48,21 +74,10 @@ def main():
 
         SeqIO.write(record, out_fh, "fasta")
 
-    print('Done, wrote {} sequence{} to {} file{}'.format(
+    print('Done, wrote {} sequence{} to {} file{} in "{}"'.format(
         nseq, '' if nseq == 1 else 's',
-        nfile, '' if nfile == 1 else 's'))
-
-# --------------------------------------------------
-def get_args():
-    """get args"""
-    parser = argparse.ArgumentParser(description='Split FASTA files')
-    parser.add_argument('-f', '--fasta', help='FASTA input file',
-                        type=str, metavar='FILE', required=True)
-    parser.add_argument('-n', '--num', help='Number of records per file',
-                        type=int, metavar='NUM', default=50)
-    parser.add_argument('-o', '--out_dir', help='Output directory',
-                        type=str, metavar='DIR', default='fasplit')
-    return parser.parse_args()
+        nfile, '' if nfile == 1 else 's',
+        out_dir))
 
 # --------------------------------------------------
 if __name__ == '__main__':
