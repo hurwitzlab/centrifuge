@@ -12,17 +12,20 @@ from Bio import SeqIO
 def get_args():
     """get args"""
     parser = argparse.ArgumentParser(
-        description='Split FASTA files',
+        description="Split FASTA files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-f', '--fasta', help='FASTA input file',
-                        type=str, metavar='FILE', required=True)
+    parser.add_argument("-i", "--infile", help="Input file",
+                        type=str, metavar="FILE", required=True)
 
-    parser.add_argument('-n', '--num', help='Number of records per file',
-                        type=int, metavar='NUM', default=50)
+    parser.add_argument("-f", "--format", help="Format (FASTA or FASTQ)",
+                        type=str, metavar="FILE", default="fasta")
 
-    parser.add_argument('-o', '--out_dir', help='Output directory',
-                        type=str, metavar='DIR', default='fasplit')
+    parser.add_argument("-n", "--num", help="Number of records per file",
+                        type=int, metavar="NUM", default=50)
+
+    parser.add_argument("-o", "--out_dir", help="Output directory",
+                        type=str, metavar="DIR", default="fasplit")
 
     return parser.parse_args()
 
@@ -30,12 +33,13 @@ def get_args():
 def main():
     """main"""
     args = get_args()
-    fasta = args.fasta
+    infile = args.infile
+    file_format = args.format
     out_dir = args.out_dir
     max_per = args.num
 
-    if not os.path.isfile(fasta):
-        print('--fasta "{}" is not valid'.format(fasta))
+    if not os.path.isfile(infile):
+        print('--infile "{}" is not valid'.format(infile))
         exit(1)
 
     if not os.path.isdir(out_dir):
@@ -49,16 +53,16 @@ def main():
     nseq = 0
     nfile = 0
     out_fh = None
-    basename, ext = os.path.splitext(os.path.basename(fasta))
+    basename, ext = os.path.splitext(os.path.basename(infile))
 
     handle = None
     if ext == ".gz":
-        handle = gzip.open(fasta, "rt")
+        handle = gzip.open(infile, "rt")
         basename, ext = os.path.splitext(basename)
     else:
-        handle = open(fasta, "rt")
+        handle = open(infile, "rt")
 
-    for record in SeqIO.parse(handle, "fasta"):
+    for record in SeqIO.parse(handle, file_format):
         if i == max_per:
             i = 0
             if out_fh is not None:
