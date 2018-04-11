@@ -1,4 +1,4 @@
-APP = centrifuge-0.0.4
+APP = centrifuge-0.0.5
 EMAIL = kyclark@email.arizona.edu
 
 run: clean
@@ -19,8 +19,8 @@ test: clean
 job:
 	jobs-submit -F job.json
 
-jobs-template:
-	jobs-template $(APP) > job.json
+template:
+	jobs-template -A $(APP) > job.json
 
 jobs-submit:
 	jobs-submit -F job.json

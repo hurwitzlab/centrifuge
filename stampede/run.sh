@@ -9,8 +9,12 @@
 
 # Author: Ken Youens-Clark <kyclark@email.arizona.edu>
 
+set -x
+
 module load tacc-singularity 
 module load launcher
+
+set +x
 
 set -u
 
@@ -299,8 +303,12 @@ NUM_CENT_JOBS=$(lc "$CENT_PARAM")
 if [[ "$NUM_CENT_JOBS" -gt 0 ]]; then
     echo "Running \"$NUM_CENT_JOBS\" for Centrifuge \"$CENT_PARAM\""
     export LAUNCHER_JOB_FILE="$CENT_PARAM"
-    export LAUNCHER_PPN=4
-    "$LAUNCHER_DIR/paramrun"
+    if [[ $INDEX == 'nt' ]]; then
+        export LAUNCHER_PPN=1 # nt requires ALL THE MEMORY
+    else
+        export LAUNCHER_PPN=4 
+    fi
+    $PARAMRUN
     echo "Finished Centrifuge"
 else
     echo "There are no Centrifuge jobs to run!"
