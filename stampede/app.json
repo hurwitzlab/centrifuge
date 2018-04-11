@@ -109,6 +109,32 @@
                 "repeatArgument": false,
                 "showArgument": true
             }
+        },
+        {
+            "id": "FORMAT",
+            "value": {
+                "default": "fasta",
+                "type": "enumeration",
+                "order": 3,
+                "required": true,
+                "visible": true,
+                "enquote": false,
+                "enumValues": [
+                    {
+                        "fasta": "FASTA"
+                    },
+                    {
+                        "fastq": "FASTQ"
+                    }
+                ]
+            },
+            "details": {
+                "description": "FASTA (default) or FASTQ",
+                "label": "File format",
+                "argument": "--format",
+                "repeatArgument": false,
+                "showArgument": true
+            }
         }
     ],
     "outputs": []
