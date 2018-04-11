@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import sys
 import gzip
 from Bio import SeqIO
 
@@ -18,14 +19,14 @@ def get_args():
     parser.add_argument("-i", "--infile", help="Input file",
                         type=str, metavar="FILE", required=True)
 
-    parser.add_argument("-f", "--format", help="Format (FASTA or FASTQ)",
+    parser.add_argument("-f", "--format", help="Format (fasta, fastq)",
                         type=str, metavar="FILE", default="fasta")
 
     parser.add_argument("-n", "--num", help="Number of records per file",
                         type=int, metavar="NUM", default=50)
 
     parser.add_argument("-o", "--out_dir", help="Output directory",
-                        type=str, metavar="DIR", default="fasplit")
+                        type=str, metavar="DIR", default="split-files")
 
     return parser.parse_args()
 
@@ -34,20 +35,24 @@ def main():
     """main"""
     args = get_args()
     infile = args.infile
-    file_format = args.format
+    file_format = args.format.lower()
     out_dir = args.out_dir
     max_per = args.num
 
     if not os.path.isfile(infile):
         print('--infile "{}" is not valid'.format(infile))
-        exit(1)
+        sys.exit(1)
 
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
     if max_per < 1:
         print("--num cannot be less than one")
-        exit(1)
+        sys.exit(1)
+
+    if not file_format in set(['fasta', 'fastq']):
+        print("--format ({}) must be fasta/q".format(file_format))
+        sys.exit(1)
 
     i = 0
     nseq = 0
