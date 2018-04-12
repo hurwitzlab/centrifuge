@@ -23,6 +23,7 @@ set -u
 #
 IN_DIR=""
 QUERY=""
+FORMAT="fasta"
 MODE="single"
 FASTA=""
 FORWARD=""
@@ -67,6 +68,7 @@ function HELP() {
     echo "Options:"
     echo " -i INDEX ($INDEX)"
     echo " -o OUT_DIR ($OUT_DIR)"
+    echo " -t FORMAT ($FORMAT)"
     echo " -s SINGLETONS"
     echo " -k SKIP_EXISTING ($SKIP_EXISTING)"
     echo " -x EXCLUDE_TAXIDS"
@@ -79,7 +81,7 @@ function HELP() {
 #
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:i:f:m:o:q:r:s:x:kh OPT; do
+while getopts :a:d:i:f:m:o:q:r:s:t:x:kh OPT; do
     case $OPT in
         a)
             FASTA="$OPTARG"
@@ -113,6 +115,9 @@ while getopts :a:d:i:f:m:o:q:r:s:x:kh OPT; do
             ;;
         s)
             SINGLETONS="$OPTARG"
+            ;;
+        t)
+            FORMAT="$OPTARG"
             ;;
         x)
             EXCLUDE_TAXIDS="$OPTARG"
@@ -264,7 +269,7 @@ if [[ $NUM_INPUT -gt 0 ]]; then
         if [[ $NUM_SPLIT_FILES -lt 1 ]]; then
             let i++
             printf "%6d: Split %s\n" $i "$(basename "$FILE")"
-            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -f $FILE -o $FILE_SPLIT_DIR -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
+            echo "singularity exec $CENTRIFUGE_IMG fasplit.py -i $FILE -f $FORMAT -o $FILE_SPLIT_DIR -n $MAX_SEQS_PER_FILE" >> "$SPLIT_PARAM"
         fi
     done < "$INPUT_FILES"
 
