@@ -120,7 +120,7 @@ p2 <- p2 + labs(y = "Organism", x = "Sample")
 p2 <- p2 + ggtitle(plot_title) + theme(plot.title = element_text(hjust = 0.5))
 p2 <- p2 + guides(color=F)
 print(p2)
-dev.off()
+invisible(dev.off())
 
 write.csv(df, file = file.path(out.dir, paste0(file_name, ".csv")))
 printf("Done, see %s\n", out.dir)
