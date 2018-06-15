@@ -80,6 +80,15 @@ def die(msg='Something went wrong'):
     sys.exit(1)
 
 # --------------------------------------------------
+def find_files(path):
+    """Recursively find non-empty, regular files"""
+    def ok(file):
+        """is file and not zero-length"""
+        return os.path.isfile(file) and os.path.getsize(file) > 0
+
+    return list(filter(ok, glob.iglob(path + '/**', recursive=True)))
+
+# --------------------------------------------------
 def find_input_files(query):
     """Find input files from list of files/dirs"""
     files = []
@@ -104,10 +113,10 @@ def line_count(fname):
     return n
 
 # --------------------------------------------------
-def run_job_file(jobfile, msg='Running job', njobs=16):
+def run_job_file(jobfile, msg='Running job', nconcurrent=16):
     """Run a job file if there are jobs"""
     num_jobs = line_count(jobfile)
-    warn('{} (# jobs = {})'.format(msg, num_jobs))
+    warn('{} (# jobs = {} @ {})'.format(msg, num_jobs, nconcurrent))
 
     if num_jobs > 0:
         subprocess.run('parallel -j {} < {}'.format(njobs, jobfile), shell=True)
@@ -145,8 +154,7 @@ def split_files(out_dir, files, max_seqs, file_format):
                         msg='Splitting input files'):
         die()
 
-    return list(filter(os.path.isfile,
-                       glob.iglob(split_dir + '/**', recursive=True)))
+    return find_files(split_dir)
 
 # --------------------------------------------------
 def run_centrifuge(files, exclude_ids, index_name, index_dir, out_dir, threads):
@@ -179,8 +187,7 @@ def run_centrifuge(files, exclude_ids, index_name, index_dir, out_dir, threads):
                         msg='Running Centrifuge'):
         die()
 
-    return list(filter(os.path.isfile,
-                       glob.iglob(reports_dir + '/**', recursive=True)))
+    return find_files(reports_dir)
 
 # --------------------------------------------------
 def get_excluded_tax(ids):
