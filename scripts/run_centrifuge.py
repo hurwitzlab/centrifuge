@@ -14,7 +14,7 @@ import tempfile as tmp
 def get_args():
     """get args"""
     parser = argparse.ArgumentParser(
-        description='Argparse Python script',
+        description='Run Centrifuge',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-q', '--query',
@@ -104,13 +104,13 @@ def line_count(fname):
     return n
 
 # --------------------------------------------------
-def run_job_file(jobfile, msg='Running job'):
+def run_job_file(jobfile, msg='Running job', njobs=16):
     """Run a job file if there are jobs"""
     num_jobs = line_count(jobfile)
     warn('{} (# jobs = {})'.format(msg, num_jobs))
 
     if num_jobs > 0:
-        subprocess.run('parallel < ' + jobfile, shell=True)
+        subprocess.run('parallel -j {} < {}'.format(njobs, jobfile), shell=True)
 
     os.remove(jobfile)
 
@@ -140,7 +140,9 @@ def split_files(out_dir, files, max_seqs, file_format):
 
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Splitting input files'):
+    if not run_job_file(jobfile=jobfile.name,
+                        njobs=32,
+                        msg='Splitting input files'):
         die()
 
     return list(filter(os.path.isfile,
@@ -172,7 +174,9 @@ def run_centrifuge(files, exclude_ids, index_name, index_dir, out_dir, threads):
                                       tsv_file))
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Running Centrifuge'):
+    if not run_job_file(jobfile=jobfile.name,
+                        njobs=1 if index_name == 'nt' else 4,
+                        msg='Running Centrifuge'):
         die()
 
     return list(filter(os.path.isfile,
