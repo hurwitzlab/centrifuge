@@ -119,7 +119,8 @@ def run_job_file(jobfile, msg='Running job', nconcurrent=16):
     warn('{} (# jobs = {} @ {})'.format(msg, num_jobs, nconcurrent))
 
     if num_jobs > 0:
-        subprocess.run('parallel -j {} < {}'.format(njobs, jobfile), shell=True)
+        subprocess.run('parallel -j {} < {}'.format(nconcurrent, jobfile),
+                       shell=True)
 
     os.remove(jobfile)
 
@@ -150,7 +151,7 @@ def split_files(out_dir, files, max_seqs, file_format):
     jobfile.close()
 
     if not run_job_file(jobfile=jobfile.name,
-                        njobs=32,
+                        nconcurrent=32,
                         msg='Splitting input files'):
         die()
 
@@ -183,7 +184,7 @@ def run_centrifuge(files, exclude_ids, index_name, index_dir, out_dir, threads):
     jobfile.close()
 
     if not run_job_file(jobfile=jobfile.name,
-                        njobs=1 if index_name == 'nt' else 4,
+                        nconcurrent=1 if index_name == 'nt' else 4,
                         msg='Running Centrifuge'):
         die()
 
