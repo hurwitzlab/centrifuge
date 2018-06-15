@@ -71,7 +71,7 @@ def get_args():
 # --------------------------------------------------
 def warn(msg):
     """Print a message to STDERR"""
-    print(msg, file=sys.stderr)
+    print(msg, file=sys.stderr, flush=True)
 
 # --------------------------------------------------
 def die(msg='Something went wrong'):
