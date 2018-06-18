@@ -1,9 +1,10 @@
 {
-  "name":"centrifuge test-1522272663",
-  "appId": "centrifuge-0.0.5",
-  "batchQueue": "skx-normal",
+  "name":"centrifuge-0.0.6-test",
+  "appId": "centrifuge-0.0.6",
+  "batchQueue": "normal",
   "executionSystem": "tacc-stampede2-kyclark",
   "maxRunTime": "12:00:00",
+  "memoryPerNode": "32GB",
   "nodeCount": 1,
   "processorsPerNode": 16,
   "archive": true,
@@ -11,16 +12,18 @@
   "archivePath": null,
   "inputs": {
     "QUERY": [ 
-      "/kyclark/data/dolphin/fasta/Dolphin_1_z04.fa"
+      "/kyclark/data/dolphin/fasta/Dolphin_1_z04.fa",
+      "/kyclark/data/dolphin/fasta/Dolphin_2_z09.fa"
     ]
   },
   "parameters": {
-    "INDEX": "nt",
-    "EXCLUDE_TAXIDS": "9606"
+    "INDEX": "p+h+v",
+    "EXCLUDE_TAXIDS": "9606",
+    "FORMAT": "fasta"
   },
   "notifications": [
     {
-      "url":"https://requestbin.agaveapi.co/1n03uza1?job_id=${JOB_ID}&status=${JOB_STATUS}",
+      "url":"https://requestbin.agaveapi.co/1if1nnc1?job_id=${JOB_ID}&status=${JOB_STATUS}",
       "event":"*",
       "persistent":true
     },

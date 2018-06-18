@@ -13,6 +13,6 @@ OUT_DIR="$SCRATCH/centrifuge/test"
 
 [[ -d "$OUT_DIR" ]] && rm -rf $OUT_DIR/*
 
-#sh run.sh -i nt -q "$WORK/data/dolphin/fasta/Dolphin_1_z04.fa" -q "$WORK/data/dolphin/fasta/Dolphin_3_z11.fa" -o $OUT_DIR
+sh run.sh -i nt -q "$WORK/data/dolphin/fasta/Dolphin_1_z04.fa" -q "$WORK/data/dolphin/fasta/Dolphin_3_z11.fa" -o $OUT_DIR
 
-sh run.sh -q "$WORK/data/human_salivary/fizkin/query" -o "$WORK/data/human_salivary/centrifuge-shared" -x 9606
+#sh run.sh -q "$WORK/data/human_salivary/fizkin/query" -o "$WORK/data/human_salivary/centrifuge-shared" -x 9606

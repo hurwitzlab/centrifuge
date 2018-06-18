@@ -1,6 +1,6 @@
 {
     "name": "centrifuge",
-    "version": "0.0.5",
+    "version": "1.0.4",
     "shortDescription": "Classifier for metagenomic sequences",
     "longDescription": "Centrifuge is a microbial classification engine that enables rapid, accurate and sensitive labeling of reads and quantification of species on desktop computers. The system uses a indexing scheme based on the Burrows-Wheeler transform (BWT) and the Ferragina-Manzini (FM) index optimized specifically for the metagenomic classification problem. Centrifuge requires a relatively small index (5.8 GB for all complete bacterial and viral genomes plus the human genome) and classifies sequences at a very high speed, allowing it to process the millions of reads from a typical high-throughput DNA sequencing run within a few minutes. Together these advances enable timely and accurate analysis of large metagenomics data sets on conventional desktop computers.",
     "available": true,
@@ -10,7 +10,7 @@
     "defaultMaxRunTime": "12:00:00",
     "defaultNodeCount": 1,
     "defaultQueue": "skx-normal",
-    "deploymentPath": "kyclark/applications/centrifuge-0.0.5/stampede",
+    "deploymentPath": "kyclark/applications/centrifuge-1.0.4/stampede",
     "deploymentSystem": "data.iplantcollaborative.org",
     "executionSystem": "tacc-stampede2-kyclark",
     "executionType": "HPC",
@@ -116,7 +116,7 @@
                 "default": "fasta",
                 "type": "enumeration",
                 "order": 3,
-                "required": true,
+                "required": false,
                 "visible": true,
                 "enquote": false,
                 "enumValues": [
@@ -131,7 +131,7 @@
             "details": {
                 "description": "FASTA (default) or FASTQ",
                 "label": "File format",
-                "argument": "--format",
+                "argument": "-t ",
                 "repeatArgument": false,
                 "showArgument": true
             }

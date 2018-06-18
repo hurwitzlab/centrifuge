@@ -9,12 +9,8 @@
 
 # Author: Ken Youens-Clark <kyclark@email.arizona.edu>
 
-set -x
-
 module load tacc-singularity 
 module load launcher
-
-set +x
 
 set -u
 
@@ -33,7 +29,7 @@ INDEX="p_compressed+h+v"
 OUT_DIR="$PWD/centrifuge-out"
 INDEX_DIR="/work/05066/imicrobe/iplantc.org/data/centrifuge-indexes"
 MAX_SEQS_PER_FILE=1000000
-CENTRIFUGE_IMG="centrifuge-1.0.3-beta.img"
+CENTRIFUGE_IMG="/work/05066/imicrobe/singularity/centrifuge-1.0.4.img"
 EXCLUDE_TAXIDS=""
 SKIP_EXISTING=1
 PARAMRUN="$TACC_LAUNCHER_DIR/paramrun"
@@ -335,12 +331,6 @@ rm "$INPUT_FILES"
 #
 echo "Starting bubble"
 singularity exec $CENTRIFUGE_IMG centrifuge_bubble.r --dir "$COLLAPSE_DIR" --outdir "$PLOT_DIR" --outfile "bubble" --title "centrifuge"
-
-#BUBBLE_PARAM="$PWD/$$.bubble.param"
-#echo "singularity exec $CENTRIFUGE_IMG centrifuge_bubble.r --dir $COLLAPSE_DIR --outdir $PLOT_DIR --outfile bubble --title centrifuge" > "$BUBBLE_PARAM"
-#export LAUNCHER_JOB_FILE="$BUBBLE_PARAM"
-#"$LAUNCHER_DIR/paramrun"
-echo "Finished bubble"
 
 echo "Done, look in OUT_DIR \"$OUT_DIR\""
 echo "Comments to Ken Youens-Clark <kyclark@email.arizona.edu>"
