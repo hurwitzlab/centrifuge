@@ -7,7 +7,7 @@ From: ubuntu:latest
     export LD_LIBRARY_PATH
 
 %runscript
-    exec /app/centrifuge/centrifuge "$@"
+    exec centrifuge "$@"
 
 %post
     apt-get update
