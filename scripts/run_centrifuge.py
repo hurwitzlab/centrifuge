@@ -9,7 +9,6 @@ import re
 import subprocess
 import sys
 import tempfile as tmp
-from pprint import pprint
 
 # --------------------------------------------------
 def get_args():
@@ -23,29 +22,11 @@ def get_args():
                         metavar='str',
                         type=str,
                         nargs='+',
-                        default='')
+                        required=True)
 
-    parser.add_argument('-1', '--forward',
-                        help='Comma-separated forward reads\n'
-                        'that pair with reverse reads\n'
-                        'THESE NEED TO BE FULL PATHS',
-                        metavar='str',
-                        type=str,
-                        default='')
-
-    parser.add_argument('-2', '--reverse',
-                        help='Comma-separated reverse reads\n'
-                        'that pair with forward reads\n'
-                        'THESE NEED TO BE FULL PATHS',
-                        metavar='str',
-                        type=str,
-                        default='')
-
-    parser.add_argument('-U', '--unpaired',
-                        help='Comma-separated unpaired reads',
-                        metavar='str',
-                        type=str,
-                        default='')
+    parser.add_argument('-r', '--reads_are_paired',
+                        help='Expect forward/reverse (1/2) reads in --query',
+                        action='store_true')
 
     parser.add_argument('-f', '--format',
                         help='Input file format',
@@ -63,7 +44,7 @@ def get_args():
                         help='Centrifuge index directory',
                         metavar='str',
                         type=str,
-                        default='/work/05066/imicrobe/iplantc.org/data/centrifuge-indexes')
+                        default='')
 
     parser.add_argument('-o', '--out_dir',
                         help='Output directory',
@@ -72,16 +53,16 @@ def get_args():
                         default=os.path.join(os.getcwd(), 'centrifuge-out'))
 
     parser.add_argument('-x', '--exclude_taxids',
-                        help='Exclude tax ids',
+                        help='Comma-separated list of tax ids to exclude',
                         metavar='str',
                         type=str,
                         default='')
 
     parser.add_argument('-X', '--max_seqs_per_file',
-                        help='Maxium num of sequences per file',
+                        help='Maxium num of sequences per file for split',
                         metavar='int',
                         type=int,
-                        default=1000000)
+                        default=0)
 
     parser.add_argument('-t', '--threads',
                         help='Num of threads per instance of centrifuge',
@@ -109,7 +90,7 @@ def die(msg='Something went wrong'):
     sys.exit(1)
 
 # --------------------------------------------------
-def find_input_files(query):
+def find_input_files(query, reads_are_paired):
     """Find input files from list of files/dirs"""
     files = []
     for qry in query:
@@ -121,7 +102,28 @@ def find_input_files(query):
             files.append(qry)
         else:
             die('--query "{}" neither file nor directory'.format(qry))
-    return files
+
+    files.sort() # inplace
+
+    forward = []
+    reverse = []
+    unpaired = []
+    if reads_are_paired:
+        re_tmpl = '.+[_-][Rr]?{}[_-].*'
+        forward_re = re.compile(re_tmpl.format('1'))
+        reverse_re = re.compile(re_tmpl.format('2'))
+
+        for fname in files:
+            if forward_re.search(fname):
+                forward.append(fname)
+            elif reverse_re.search(fname):
+                reverse.append(fname)
+            else:
+                unpaired.append(fname)
+    else:
+        unpaired = files
+
+    return {'forward': forward, 'reverse': reverse, 'unpaired': unpaired}
 
 # --------------------------------------------------
 def line_count(fname):
@@ -139,16 +141,27 @@ def run_job_file(jobfile, msg='Running job', procs=1):
     warn('{} (# jobs = {})'.format(msg, num_jobs))
 
     if num_jobs > 0:
-        print('parallel -P {} < '.format(procs) + jobfile)
-        subprocess.run('parallel -P {} < '.format(procs) + jobfile, shell=True)
+        cmd = 'parallel --halt soon,fail=1 -P {} < {}'.format(procs, jobfile)
+        warn(cmd)
 
-    os.remove(jobfile)
+        try:
+            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+        except subprocess.CalledProcessError as err:
+            die('Error:\n{}\n{}\n{}\n'.format(err.output,
+                                              err.stderr,
+                                              err.stdout))
+        finally:
+            os.remove(jobfile)
 
     return True
 
 # --------------------------------------------------
 def split_files(out_dir, files, max_seqs, file_format, procs):
     """Split input files by max_sequences"""
+
+    if max_seqs == 0:
+        return files
+
     split_dir = os.path.join(out_dir, 'split')
 
     if not os.path.isdir(split_dir):
@@ -167,19 +180,28 @@ def split_files(out_dir, files, max_seqs, file_format, procs):
                                       out_file,
                                       max_seqs))
 
-
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Splitting input files', procs=procs):
-        die()
+    run_job_file(jobfile=jobfile.name,
+                 msg='Splitting input files',
+                 procs=procs)
 
     return list(filter(os.path.isfile,
                        glob.iglob(split_dir + '/**', recursive=True)))
 
 # --------------------------------------------------
-def run_centrifuge(file_format, files, exclude_ids, 
-        index_name, index_dir, out_dir, threads, procs):
+def run_centrifuge(**args):
     """Run Centrifuge"""
+
+    file_format = args['file_format']
+    files = args['files']
+    exclude_ids = args['exclude_ids']
+    index_name = args['index_name']
+    index_dir = args['index_dir']
+    out_dir = args['out_dir']
+    threads = args['threads']
+    procs = args['procs']
+
     reports_dir = os.path.join(out_dir, 'reports')
 
     if not os.path.isdir(reports_dir):
@@ -187,71 +209,45 @@ def run_centrifuge(file_format, files, exclude_ids,
 
     jobfile = tmp.NamedTemporaryFile(delete=False, mode='wt')
     exclude_arg = '--exclude-taxids ' + exclude_ids if exclude_ids else ''
-    if file_format == 'fasta':
-        tmpl = 'CENTRIFUGE_INDEXES={} centrifuge {} -f -p {} -x {} -U {} -S {} --report-file {}\n'
-    elif file_format == 'fastq':
-        tmpl = 'CENTRIFUGE_INDEXES={} centrifuge {} -p {} -x {} -U {} -S {} --report-file {}\n'
-    else:
-        die('Need to specifiy read format for centrifuge to work')
+    format_arg = '-f' if file_format == 'fasta' else ''
 
-    for file in files:
+    cmd_tmpl = 'CENTRIFUGE_INDEXES={} centrifuge {} {} -p {} -x {} '
+    cmd_base = cmd_tmpl.format(index_dir,
+                               exclude_arg,
+                               format_arg,
+                               threads,
+                               index_name)
+
+
+    for file in files.unpaired:
         basename = os.path.basename(file)
         tsv_file = os.path.join(reports_dir, basename + '.tsv')
         sum_file = os.path.join(reports_dir, basename + '.sum')
+        tmpl = cmd_base + '-U {} -S {} --report-file {}\n'
         if not os.path.isfile(tsv_file):
-            jobfile.write(tmpl.format(index_dir,
-                                      exclude_arg,
-                                      threads,
-                                      index_name,
-                                      file,
-                                      sum_file,
-                                      tsv_file))
-    jobfile.close()
+            jobfile.write(tmpl.format(file, sum_file, tsv_file))
 
-    if not run_job_file(jobfile=jobfile.name, msg='Running Centrifuge', procs=procs):
-        die()
-
-    return list(filter(os.path.isfile,
-                       glob.iglob(reports_dir + '/**', recursive=True)))
-
-def run_cent_paired(file_format, paired_reads, exclude_ids, 
-        index_name, index_dir, out_dir, threads, procs):
-    """Run Centrifuge"""
-    reports_dir = os.path.join(out_dir, 'reports')
-
-    if not os.path.isdir(reports_dir):
-        os.makedirs(reports_dir)
-
-    jobfile = tmp.NamedTemporaryFile(delete=False, mode='wt')
-    exclude_arg = '--exclude-taxids ' + exclude_ids if exclude_ids else ''
-    if file_format == 'fasta':
-        tmpl = 'CENTRIFUGE_INDEXES={} centrifuge {} -f -p {} -x {} -1 {} -2 {} -S {} --report-file {}\n'
-    elif file_format == 'fastq':
-        tmpl = 'CENTRIFUGE_INDEXES={} centrifuge {} -p {} -x {} -1 {} -2 {} -S {} --report-file {}\n'
-    else:
-        die('Need to specifiy read format for centrifuge to work')
-
-    for f, r in paired_reads:
-        basename = os.path.basename(f)
+    for i, file in files.forward:
+        basename = os.path.basename(file)
         tsv_file = os.path.join(reports_dir, basename + '.tsv')
         sum_file = os.path.join(reports_dir, basename + '.sum')
+        tmpl = cmd_base + '-1 {} -2 {} -S {} --report-file {}\n'
         if not os.path.isfile(tsv_file):
-            jobfile.write(tmpl.format(index_dir,
-                                      exclude_arg,
-                                      threads,
-                                      index_name,
-                                      f,
-                                      r,
+            jobfile.write(tmpl.format(file,
+                                      files.reverse[i],
                                       sum_file,
                                       tsv_file))
+
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Running Centrifuge', procs=procs):
-        die()
+    run_job_file(jobfile=jobfile.name,
+                 msg='Running Centrifuge',
+                 procs=procs)
 
-    return list(filter(os.path.isfile,
-                       glob.iglob(reports_dir + '/**', recursive=True)))
+    return reports_dir
 
+#    return list(filter(os.path.isfile,
+#                       glob.iglob(reports_dir + '/**', recursive=True)))
 
 # --------------------------------------------------
 def get_excluded_tax(ids):
@@ -348,7 +344,7 @@ def write_tsv(files, out_fh):
 
 # --------------------------------------------------
 def write_sum(files, out_fh):
-    """collapse sum files"""
+    """Collapse sum files"""
     for fnum, file in enumerate(files):
         print('    {:4}: {}'.format(fnum + 1, os.path.basename(file)))
         in_fh = open(file, 'r')
@@ -360,7 +356,7 @@ def write_sum(files, out_fh):
             out_fh.write(line)
 
 # --------------------------------------------------
-def make_bubble(collapse_dir, out_dir):
+def make_bubble(reports_dir, out_dir):
     """Make bubble chart"""
     fig_dir = os.path.join(out_dir, 'figures')
 
@@ -370,7 +366,7 @@ def make_bubble(collapse_dir, out_dir):
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     bubble = os.path.join(cur_dir, 'centrifuge_bubble.r')
     job = '{} --dir {} --outdir {}'.format(bubble,
-                                           collapse_dir,
+                                           reports_dir,
                                            fig_dir)
 
     subprocess.run(job, shell=True)
@@ -393,43 +389,35 @@ def main():
         print('--index_name is required')
         sys.exit(1)
 
-    valid_index = set(['p_compressed', 'p_compressed+h+v', 'p+h+v']) #since this is getting genomes from PATRIC db of bacteria, we do not want nt
+    if not os.path.isdir(index_dir):
+        die('--index_dir "{}" is not a directory'.format(index_dir))
+
+    valid_index = set(map(
+        lambda s: re.sub(r'\.\d+\.cf$', '', os.path.basename(s)),
+        os.listdir(index_dir)))
+
     if not index_name in valid_index:
         tmpl = '--index "{}" is not valid, please choose from: {}'
         die(tmpl.format(index_name, ', '.join(sorted(valid_index))))
 
-    if not os.path.isdir(index_dir):
-        die('--index_dir "{}" is not a directory'.format(index_dir))
-
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
 
+    # returns a comma-delimited string of numerical values
     exclude_ids = get_excluded_tax(args.exclude_taxids)
 
-    if args.query or args.unpaired:
-        if args.query and not args.unpaired:
-            input_files = find_input_files(args.query)
-        elif args.unpaired and not args.query:
-            input_files = args.unpaired.split(',')
-        else:
-            die('Using query input AND unpaired is unsupported\n' +
-                    'Please choose one or the other')
-        
-        num_files = len(input_files)
-        warn('Found {} input file{}'.format(num_files,
-                                            '' if num_files == 1 else 's'))
+    input_files = find_input_files(args.query, args.reads_are_paired)
+    print(input_files)
 
-        if num_files == 0:
-            die('No usable files from --query')
+    num_forward = len(input_files['forward'])
+    num_reverse = len(input_files['reverse'])
 
-        split_file_names = split_files(out_dir=out_dir,
-                                       files=input_files,
-                                       file_format=args.format,
-                                       max_seqs=args.max_seqs_per_file,
-                                       procs=args.procs)
+    if num_forward and num_reverse and num_forward != num_reverse:
+        msg = 'The number of forward ({}) and reverse ({}) reads do not match'
+        die(msg.format(num_forward, num_reverse))
 
-        reports = run_centrifuge(file_format=args.format,
-                                 files=split_file_names,
+    reports_dir = run_centrifuge(file_format=args.format,
+                                 files=input_files,
                                  out_dir=out_dir,
                                  exclude_ids=exclude_ids,
                                  index_dir=index_dir,
@@ -437,60 +425,10 @@ def main():
                                  threads=args.threads,
                                  procs=args.procs)
 
-        collapse_dir = collapse_reports(input_files=input_files,
-                                        reports=reports,
-                                        out_dir=out_dir)
+    fig_dir = make_bubble(reports_dir=reports_dir, out_dir=out_dir)
+    print('Done, reports in "{}", figures in "{}"'.format(reports_dir,
+                                                          fig_dir))
 
-        fig_dir = make_bubble(collapse_dir=collapse_dir, out_dir=out_dir)
-
-        print('Done, reports in "{}", figures in "{}"'.format(collapse_dir,
-                                                              fig_dir))
-    elif args.forward and args.reverse:
-
-        f_list = args.forward.split(',')
-        r_list = args.reverse.split(',')
-
-        if len(f_list) != len(r_list):
-            die('Number of forward reads is not the same as reverse reads!!')
-
-        num_files = len(f_list)
-
-        warn('Found {} paired read{}'.format(num_files,
-                                            '' if num_files == 1 else 's'))
-
-        if num_files == 0:
-            die('No usable files from -1/-2')
-
-        paired = [] #list of tuples (forward_read,reverse_read)
-        for read in f_list:
-            paired.append((read, r_list[f_list.index(read)]))
-
-        #TODO: split the forward and reverse reads as done with the unpaired
-        #for more parallelizing
-        reports = run_cent_paired(file_format=args.format,
-                                 paired_reads=paired,
-                                 out_dir=out_dir,
-                                 exclude_ids=exclude_ids,
-                                 index_dir=index_dir,
-                                 index_name=index_name,
-                                 threads=args.threads,
-                                 procs=args.procs)
-
-        reports_dir = os.path.dirname(reports[0])
-#        warn('Reports dir: {}'.format(reports_dir))
-        fig_dir = make_bubble(collapse_dir=reports_dir, out_dir=out_dir)
-
-        print('Done, reports in "{}", figures in "{}"'.format(reports_dir,
-                                                              fig_dir))
-
-    else:
-        die('Need a query/unpaired or paired forward and reverse reads\n' +
-                'This is what is have: query {}\n'.format(args.query) +
-                'forward {}\n'.format(args.forward) +
-                'reverse {}\n'.format(args.reverse) +
-                'unpaired {}\n'.format(args.unpaired))
-
-        
 # --------------------------------------------------
 if __name__ == '__main__':
     main()
