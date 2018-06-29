@@ -2,8 +2,6 @@
 """Run Centrifuge"""
 
 import argparse
-import csv
-import glob
 import os
 import re
 import subprocess
@@ -12,7 +10,8 @@ import tempfile as tmp
 
 # --------------------------------------------------
 def get_args():
-    """get args"""
+    """Get command-line args"""
+
     parser = argparse.ArgumentParser(
         description='Argparse Python script',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -52,7 +51,7 @@ def get_args():
                         type=str,
                         default=os.path.join(os.getcwd(), 'centrifuge-out'))
 
-    parser.add_argument('-x', '--exclude_taxids',
+    parser.add_argument('-x', '--exclude_tax_ids',
                         help='Comma-separated list of tax ids to exclude',
                         metavar='str',
                         type=str,
@@ -64,6 +63,12 @@ def get_args():
                         type=int,
                         default=0)
 
+    parser.add_argument('-T', '--figure_title',
+                        help='Title for the bubble chart',
+                        metavar='str',
+                        type=str,
+                        default='Species abundance by sample')
+
     parser.add_argument('-t', '--threads',
                         help='Num of threads per instance of centrifuge',
                         metavar='int',
@@ -74,24 +79,27 @@ def get_args():
                         help='Max number of processes to run',
                         metavar='int',
                         type=int,
-                        default=1)
+                        default=4)
 
     return parser.parse_args()
 
 # --------------------------------------------------
 def warn(msg):
     """Print a message to STDERR"""
+
     print(msg, file=sys.stderr)
 
 # --------------------------------------------------
 def die(msg='Something went wrong'):
     """Print a message to STDERR and exit with error"""
+
     warn('Error: {}'.format(msg))
     sys.exit(1)
 
 # --------------------------------------------------
 def find_input_files(query, reads_are_paired):
     """Find input files from list of files/dirs"""
+
     files = []
     for qry in query:
         if os.path.isdir(qry):
@@ -120,6 +128,14 @@ def find_input_files(query, reads_are_paired):
                 reverse.append(fname)
             else:
                 unpaired.append(fname)
+
+        num_forward = len(forward)
+        num_reverse = len(reverse)
+
+        if num_forward and num_reverse and num_forward != num_reverse:
+            msg = 'Number of forward ({}) and reverse ({}) reads do not match'
+            die(msg.format(num_forward, num_reverse))
+
     else:
         unpaired = files
 
@@ -128,6 +144,7 @@ def find_input_files(query, reads_are_paired):
 # --------------------------------------------------
 def line_count(fname):
     """Count the number of lines in a file"""
+
     n = 0
     for _ in open(fname):
         n += 1
@@ -137,6 +154,7 @@ def line_count(fname):
 # --------------------------------------------------
 def run_job_file(jobfile, msg='Running job', procs=1):
     """Run a job file if there are jobs"""
+
     num_jobs = line_count(jobfile)
     warn('{} (# jobs = {})'.format(msg, num_jobs))
 
@@ -145,49 +163,13 @@ def run_job_file(jobfile, msg='Running job', procs=1):
         warn(cmd)
 
         try:
-            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+            subprocess.run(cmd, shell=True, check=True)
         except subprocess.CalledProcessError as err:
-            die('Error:\n{}\n{}\n{}\n'.format(err.output,
-                                              err.stderr,
-                                              err.stdout))
+            die('Error:\n{}\n{}\n'.format(err.stderr, err.stdout))
         finally:
             os.remove(jobfile)
 
     return True
-
-# --------------------------------------------------
-def split_files(out_dir, files, max_seqs, file_format, procs):
-    """Split input files by max_sequences"""
-
-    if max_seqs == 0:
-        return files
-
-    split_dir = os.path.join(out_dir, 'split')
-
-    if not os.path.isdir(split_dir):
-        os.makedirs(split_dir)
-
-    jobfile = tmp.NamedTemporaryFile(delete=False, mode='wt')
-    bin_dir = os.path.dirname(os.path.realpath(__file__))
-    tmpl = '{}/fasplit.py -i {} -f {} -o {} -n {}\n'
-
-    for input_file in files:
-        out_file = os.path.join(split_dir, os.path.basename(input_file))
-        if not os.path.isdir(out_file):
-            jobfile.write(tmpl.format(bin_dir,
-                                      input_file,
-                                      file_format,
-                                      out_file,
-                                      max_seqs))
-
-    jobfile.close()
-
-    run_job_file(jobfile=jobfile.name,
-                 msg='Splitting input files',
-                 procs=procs)
-
-    return list(filter(os.path.isfile,
-                       glob.iglob(split_dir + '/**', recursive=True)))
 
 # --------------------------------------------------
 def run_centrifuge(**args):
@@ -195,7 +177,7 @@ def run_centrifuge(**args):
 
     file_format = args['file_format']
     files = args['files']
-    exclude_ids = args['exclude_ids']
+    exclude_ids = get_excluded_tax(args['exclude_tax_ids'])
     index_name = args['index_name']
     index_dir = args['index_dir']
     out_dir = args['out_dir']
@@ -219,22 +201,22 @@ def run_centrifuge(**args):
                                index_name)
 
 
-    for file in files.unpaired:
+    for file in files['unpaired']:
         basename = os.path.basename(file)
         tsv_file = os.path.join(reports_dir, basename + '.tsv')
         sum_file = os.path.join(reports_dir, basename + '.sum')
-        tmpl = cmd_base + '-U {} -S {} --report-file {}\n'
+        tmpl = cmd_base + '-U "{}" -S "{}" --report-file "{}"\n'
         if not os.path.isfile(tsv_file):
             jobfile.write(tmpl.format(file, sum_file, tsv_file))
 
-    for i, file in files.forward:
+    for i, file in enumerate(files['forward']):
         basename = os.path.basename(file)
         tsv_file = os.path.join(reports_dir, basename + '.tsv')
         sum_file = os.path.join(reports_dir, basename + '.sum')
-        tmpl = cmd_base + '-1 {} -2 {} -S {} --report-file {}\n'
+        tmpl = cmd_base + '-1 "{}" -2 "{}" -S "{}" --report-file "{}"\n'
         if not os.path.isfile(tsv_file):
             jobfile.write(tmpl.format(file,
-                                      files.reverse[i],
+                                      files['reverse'][i],
                                       sum_file,
                                       tsv_file))
 
@@ -246,12 +228,10 @@ def run_centrifuge(**args):
 
     return reports_dir
 
-#    return list(filter(os.path.isfile,
-#                       glob.iglob(reports_dir + '/**', recursive=True)))
-
 # --------------------------------------------------
 def get_excluded_tax(ids):
     """Verify the ids look like numbers"""
+
     tax_ids = []
 
     if ids:
@@ -264,100 +244,9 @@ def get_excluded_tax(ids):
     return ','.join(tax_ids)
 
 # --------------------------------------------------
-def collapse_reports(input_files, reports, out_dir):
-    """Collapse the split reports"""
-    collapse_dir = os.path.join(out_dir, 'collapsed')
-    if not os.path.isdir(collapse_dir):
-        os.makedirs(collapse_dir)
-
-    for i, filename in enumerate(input_files):
-        basename = os.path.basename(filename)
-        print('{:4}: {}'.format(i + 1, basename))
-        basename, ext = os.path.splitext(basename)
-        splits = {'tsv': [], 'sum': []}
-
-        for report in reports:
-            regex = r'{}\.(\d+)\.{}\.(tsv|sum)'.format(basename, ext[1:])
-            match = re.match(regex, os.path.basename(report))
-
-            if match:
-                num, type_ext = match.groups()
-                # storing a tuple with the num first for sorting
-                splits[type_ext].append((int(num), report))
-
-        for file_type in splits:
-            # sort on the fst of the tuple but take the snd
-            files = [a[1] for a in \
-                     sorted(splits[file_type], key=lambda a: a[0])]
-
-            if len(files) < 1:
-                msg = 'WARNING: No files ending with "{}" for "{}"'
-                print(msg.format(file_type, basename))
-            else:
-                out_path = os.path.join(collapse_dir,
-                                        basename + '.' + file_type)
-
-                if os.path.isfile(out_path):
-                    print('      "{}" exists, skipping'.format(out_path))
-                else:
-                    print('      Writing to "{}"'.format(out_path))
-                    func = write_tsv if file_type == 'tsv' else write_sum
-                    func(files, open(out_path, 'w'))
-
-
-    return collapse_dir
-
-# --------------------------------------------------
-def write_tsv(files, out_fh):
-    """collapse tsv files"""
-    tax = dict()
-    num_flds = ['numReads', 'numUniqueReads']
-
-    for fnum, file in enumerate(files):
-        print('    {:4}: {}'.format(fnum + 1, os.path.basename(file)))
-        with open(file) as csvfile:
-            reader = csv.DictReader(csvfile, delimiter='\t')
-            for row in reader:
-                tax_id = row['taxID']
-                if not tax_id in tax:
-                    tax[tax_id] = dict()
-                    for fld in row.keys():
-                        tax[tax_id][fld] = int(row[fld]) \
-                                if fld in num_flds else row[fld]
-                else:
-                    for fld in num_flds:
-                        tax[tax_id][fld] += int(row[fld])
-
-    # Write the headers
-    flds = ['name', 'taxID', 'taxRank', 'genomeSize'] + \
-            num_flds + ['abundance']
-    out_fh.write("\t".join(flds) + '\n')
-
-    total_reads = sum([tax[s]['numReads'] for s in tax])
-
-    for tax_id in sorted(tax.keys(), key=int):
-        species = tax[tax_id]
-
-        species['abundance'] = round(species['numReads'] / total_reads, 2)
-
-        out_fh.write('\t'.join([str(species[f]) for f in flds]) + '\n')
-
-# --------------------------------------------------
-def write_sum(files, out_fh):
-    """Collapse sum files"""
-    for fnum, file in enumerate(files):
-        print('    {:4}: {}'.format(fnum + 1, os.path.basename(file)))
-        in_fh = open(file, 'r')
-        hdr = in_fh.readline()
-        if fnum == 0:
-            out_fh.write(hdr)
-
-        for line in in_fh:
-            out_fh.write(line)
-
-# --------------------------------------------------
-def make_bubble(reports_dir, out_dir):
+def make_bubble(reports_dir, out_dir, title):
     """Make bubble chart"""
+
     fig_dir = os.path.join(out_dir, 'figures')
 
     if not os.path.isdir(fig_dir):
@@ -365,9 +254,9 @@ def make_bubble(reports_dir, out_dir):
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     bubble = os.path.join(cur_dir, 'centrifuge_bubble.r')
-    job = '{} --dir {} --outdir {}'.format(bubble,
-                                           reports_dir,
-                                           fig_dir)
+    tmpl = '{} --dir "{}" --title "{}" --outdir "{}"'
+    job = tmpl.format(bubble, reports_dir, title, fig_dir)
+    warn(job)
 
     subprocess.run(job, shell=True)
 
@@ -375,7 +264,8 @@ def make_bubble(reports_dir, out_dir):
 
 # --------------------------------------------------
 def main():
-    """main"""
+    """Start here"""
+
     args = get_args()
     out_dir = args.out_dir
     index_dir = args.index_dir
@@ -403,29 +293,22 @@ def main():
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
 
-    # returns a comma-delimited string of numerical values
-    exclude_ids = get_excluded_tax(args.exclude_taxids)
-
     input_files = find_input_files(args.query, args.reads_are_paired)
     print(input_files)
-
-    num_forward = len(input_files['forward'])
-    num_reverse = len(input_files['reverse'])
-
-    if num_forward and num_reverse and num_forward != num_reverse:
-        msg = 'The number of forward ({}) and reverse ({}) reads do not match'
-        die(msg.format(num_forward, num_reverse))
 
     reports_dir = run_centrifuge(file_format=args.format,
                                  files=input_files,
                                  out_dir=out_dir,
-                                 exclude_ids=exclude_ids,
+                                 exclude_tax_ids=args.exclude_tax_ids,
                                  index_dir=index_dir,
                                  index_name=index_name,
                                  threads=args.threads,
                                  procs=args.procs)
 
-    fig_dir = make_bubble(reports_dir=reports_dir, out_dir=out_dir)
+    fig_dir = make_bubble(reports_dir=reports_dir,
+                          out_dir=out_dir,
+                          title=args.figure_title)
+
     print('Done, reports in "{}", figures in "{}"'.format(reports_dir,
                                                           fig_dir))
 
