@@ -294,7 +294,11 @@ def main():
         os.makedirs(out_dir)
 
     input_files = find_input_files(args.query, args.reads_are_paired)
-    print(input_files)
+
+    msg = 'Files found: forward = "{}", reverse = "{}", unpaired = "{}"'
+    warn(msg.format(len(input_files['forward']),
+                    len(input_files['reverse']),
+                    len(input_files['unpaired'])))
 
     reports_dir = run_centrifuge(file_format=args.format,
                                  files=input_files,

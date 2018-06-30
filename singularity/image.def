@@ -7,7 +7,7 @@ From: ubuntu:latest
     export LD_LIBRARY_PATH
 
 %runscript
-    exec centrifuge "$@"
+    exec run_centrifuge.py "$@"
 
 %post
     apt-get update
@@ -54,10 +54,3 @@ EOF
     mkdir /home1
     mkdir /scratch
     mkdir /work
-
-    # 
-    # Mount points for Ocelote
-    # 
-    #mkdir /extra 
-    #mkdir /xdisk 
-    #mkdir /rsgrps

@@ -1,17 +1,37 @@
 SINGULARITY = /usr/local/bin/singularity
-IMG_NAME = centrifuge-1.0.4.img
-DEF_NAME = image.def
+IMG = centrifuge-1.0.4.img
+DEF = image.def
 SIZE = 1536
+INDEX_DIR = /work/centrifuge-indexes
 
 run:
-	sudo $(SINGULARITY) run $(IMG_NAME)
+	sudo $(SINGULARITY) run $(IMG)
 
 clean:
-	rm -f $(IMG_NAME)
+	rm -f $(IMG)
 
 img: clean
-	sudo $(SINGULARITY) create --size $(SIZE) $(IMG_NAME)
-	sudo $(SINGULARITY) bootstrap $(IMG_NAME) $(DEF_NAME)
+	sudo $(SINGULARITY) create --size $(SIZE) $(IMG)
+	sudo $(SINGULARITY) bootstrap $(IMG) $(DEF)
 
 shell:
-	sudo $(SINGULARITY) shell --writable -B $(shell pwd):/tmp $(IMG_NAME)
+	sudo $(SINGULARITY) shell --writable -B $(shell pwd):/tmp -B /data:/work -B $(HOME):/home1 $(IMG)
+
+unpaired:
+	sudo $(SINGULARITY) exec -B /data:/work -B $(HOME):/home1 $(IMG) run_centrifuge.py \
+	-q "/home1/work/data/dolphin/fasta" \
+	-I "$(INDEX_DIR)" \
+	-i "p_compressed+h+v" \
+	-f fasta \
+	-o "/home1/work/data/centrifuge/dolphin-out" \
+	-T 'Dolphin Blowhole'
+
+paired:
+	sudo $(SINGULARITY) exec -B /data:/work -B $(HOME):/home1 $(IMG) run_centrifuge.py \
+	-q "/home1/work/data/centrifuge/paired" \
+	-r -I $(INDEX_DIR) \
+	-i "p_compressed+h+v" \
+	-f fastq \
+	-x "9606, 32630" \
+	-o "/home1/work/data/centrifuge/paired-out" \
+	-T "C/Fe Cycling"
