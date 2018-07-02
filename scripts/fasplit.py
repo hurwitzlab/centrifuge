@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""split FASTA files"""
+"""split FASTA/Q files"""
 
 # Author: Ken Youens-Clark <kyclark@email.arizona.edu>
 
@@ -16,48 +16,81 @@ def get_args():
         description="Split FASTA files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("-i", "--infile", help="Input file",
-                        type=str, metavar="FILE", required=True)
+    parser.add_argument('-i', '--infile',
+                        help='Input file',
+                        type=str,
+                        metavar='FILE',
+                        required=True)
 
-    parser.add_argument("-f", "--format", help="Format (fasta, fastq)",
-                        type=str, metavar="FILE", default="fasta")
+    parser.add_argument('-f', '--input_format',
+                        help='Input format (fasta, fastq)',
+                        type=str,
+                        metavar='FILE',
+                        default='fasta')
 
-    parser.add_argument("-n", "--num", help="Number of records per file",
-                        type=int, metavar="NUM", default=50)
+    parser.add_argument('-F', '--output_format',
+                        help='Output format (same as input)',
+                        type=str,
+                        metavar='FILE',
+                        default='')
 
-    parser.add_argument("-o", "--out_dir", help="Output directory",
-                        type=str, metavar="DIR", default="split-files")
+    parser.add_argument('-n', '--num',
+                        help='Number of records per file',
+                        type=int,
+                        metavar='NUM',
+                        default=100_000)
+
+    parser.add_argument('-o', '--out_dir',
+                        help='Output directory',
+                        type=str,
+                        metavar='DIR',
+                        default='split-files')
 
     return parser.parse_args()
+
+# --------------------------------------------------
+def warn(msg):
+    print(msg, file=sys.stderr)
+
+# --------------------------------------------------
+def die(msg):
+    warn(msg)
+    sys.exit(1)
 
 # --------------------------------------------------
 def main():
     """main"""
     args = get_args()
     infile = args.infile
-    file_format = args.format.lower()
+    input_format = args.input_format.lower()
+    output_format = args.output_format.lower()
     out_dir = args.out_dir
     max_per = args.num
 
     if not os.path.isfile(infile):
-        print('--infile "{}" is not valid'.format(infile))
-        sys.exit(1)
+        die('--infile "{}" is not valid'.format(infile))
 
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
     if max_per < 1:
-        print("--num cannot be less than one")
-        sys.exit(1)
+        die("--num cannot be less than one")
 
-    if not file_format in set(['fasta', 'fastq']):
-        print("--format ({}) must be fasta/q".format(file_format))
-        sys.exit(1)
+    valid_format = set(['fasta', 'fastq'])
+    if not input_format in valid_format:
+        die('--input_format ({}) must be in {}'.format(input_format,
+                                                       ', '.join(valid_format)))
+
+    if not output_format:
+        output_format = input_format
+
+    if not output_format in valid_format:
+        die('--output_format ({}) must be in {}'.format(output_format,
+                                                        ', '.join(valid_format)))
 
     i = 0
     nseq = 0
     nfile = 0
-    out_fh = None
     basename, ext = os.path.splitext(os.path.basename(infile))
 
     handle = None
@@ -67,7 +100,8 @@ def main():
     else:
         handle = open(infile, "rt")
 
-    for record in SeqIO.parse(handle, file_format):
+    out_fh = None
+    for record in SeqIO.parse(handle, input_format):
         if i == max_per:
             i = 0
             if out_fh is not None:
@@ -81,7 +115,10 @@ def main():
             path = os.path.join(out_dir, basename + '.' + str(nfile) + ext)
             out_fh = open(path, 'wt')
 
-        SeqIO.write(record, out_fh, "fasta")
+        SeqIO.write(record, out_fh, output_format)
+
+    if out_fh is not None:
+        out_fh.close()
 
     print('Done, wrote {} sequence{} to {} file{} in "{}"'.format(
         nseq, '' if nseq == 1 else 's',
