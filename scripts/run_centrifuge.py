@@ -57,12 +57,6 @@ def get_args():
                         type=str,
                         default='')
 
-    parser.add_argument('-X', '--max_seqs_per_file',
-                        help='Maxium num of sequences per file for split',
-                        metavar='int',
-                        type=int,
-                        default=0)
-
     parser.add_argument('-T', '--figure_title',
                         help='Title for the bubble chart',
                         metavar='str',
