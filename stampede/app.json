@@ -19,7 +19,10 @@
     "parallelism": "SERIAL",
     "templatePath": "template.sh",
     "testPath": "test.sh",
-    "modules": ["tacc-singularity","launcher"],
+    "modules": [
+        "tacc-singularity",
+        "launcher"
+    ],
     "tags": [
         "centrifuge",
         "taxonomy",
@@ -132,6 +135,44 @@
                 "description": "FASTA (default) or FASTQ",
                 "label": "File format",
                 "argument": "-t ",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "READS_ARE_PAIRED",
+            "value": {
+                "default": false,
+                "type": "flag",
+                "order": 4,
+                "required": true,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Find forward/reverse reads with 1/2 in names",
+                "label": "Reads are paired",
+                "argument": "-r",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "FIGURE_TITLE",
+            "value": {
+                "default": "Species abundance",
+                "type": "string",
+                "order": 5,
+                "required": true,
+                "visible": true,
+                "enquote": true,
+                "validator": ""
+            },
+            "details": {
+                "description": "Title for bubble chart",
+                "label": "Figure title",
+                "argument": "-T",
                 "repeatArgument": false,
                 "showArgument": true
             }
