@@ -154,7 +154,6 @@ def run_job_file(jobfile, msg='Running job', procs=1):
 
     if num_jobs > 0:
         cmd = 'parallel --halt soon,fail=1 -P {} < {}'.format(procs, jobfile)
-        warn(cmd)
 
         try:
             subprocess.run(cmd, shell=True, check=True)
@@ -315,9 +314,9 @@ def main():
         die(msg.format(file_format, ', '.join(valid_format)))
 
     msg = 'Files found: forward = "{}", reverse = "{}", unpaired = "{}"'
-    warn(msg.format(len(input_files['forward']),
-                    len(input_files['reverse']),
-                    len(input_files['unpaired'])))
+    print(msg.format(len(input_files['forward']),
+                     len(input_files['reverse']),
+                     len(input_files['unpaired'])))
 
     reports_dir = run_centrifuge(file_format=args.format,
                                  files=input_files,
