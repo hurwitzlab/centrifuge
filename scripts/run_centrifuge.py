@@ -31,7 +31,7 @@ def get_args():
                         help='Input file format',
                         metavar='str',
                         type=str,
-                        default='fasta')
+                        default='')
 
     parser.add_argument('-i', '--index',
                         help='Centrifuge index name',
@@ -264,6 +264,7 @@ def main():
     out_dir = args.out_dir
     index_dir = args.index_dir
     index_name = args.index
+    file_format = args.format
 
     if not index_dir:
         print('--index_dir is required')
@@ -288,6 +289,30 @@ def main():
         os.makedirs(out_dir)
 
     input_files = find_input_files(args.query, args.reads_are_paired)
+
+    if not file_format:
+        exts = set()
+        for direction in input_files.keys():
+            for file in input_files[direction]:
+                base = re.sub('\.gz$', '', os.path.basename(file))
+                _, ext = os.path.splitext(base)
+                exts.add(ext)
+
+        if len(exts) == 1:
+            ext = re.sub('^\.', '', exts.pop())
+            if re.match(r'f(?:ast|n)?a', ext):
+                file_format = 'fasta'
+            elif re.match(r'f(?:ast)?q', ext):
+                file_format = 'fastq'
+
+        if not file_format:
+            msg = 'Cannot guess file format from extentions ({})'
+            die(msg.format(', '.join(exts)))
+
+    valid_format = set(['fasta', 'fastq'])
+    if not file_format in valid_format:
+        msg = '--format "{}" is not valid, please choose from {}'
+        die(msg.format(file_format, ', '.join(valid_format)))
 
     msg = 'Files found: forward = "{}", reverse = "{}", unpaired = "{}"'
     warn(msg.format(len(input_files['forward']),

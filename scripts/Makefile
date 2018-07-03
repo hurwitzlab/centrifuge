@@ -10,7 +10,6 @@ paired:
 	-q $(HOME)/work/data/centrifuge/paired \
 	-r -I $(INDEX_DIR) \
 	-i 'p_compressed+h+v' \
-	-f fastq \
 	-x "9606, 32630" \
 	-o $(HOME)/work/data/centrifuge/paired-out \
 	-T "C/Fe Cycling"
