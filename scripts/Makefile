@@ -2,7 +2,7 @@ INDEX_DIR = /data/centrifuge-indexes
 
 unpaired:
 	./run_centrifuge.py -q $(HOME)/work/data/dolphin/fasta \
-	-I $(INDEX_DIR) -i 'p_compressed+h+v' -f fasta \
+	-I $(INDEX_DIR) -i 'p_compressed+h+v' \
 	-o $(HOME)/work/data/centrifuge/dolphin-out -T 'Dolphin Blowhole'
 
 paired:

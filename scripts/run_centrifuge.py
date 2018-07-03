@@ -318,7 +318,7 @@ def main():
                      len(input_files['reverse']),
                      len(input_files['unpaired'])))
 
-    reports_dir = run_centrifuge(file_format=args.format,
+    reports_dir = run_centrifuge(file_format=file_format,
                                  files=input_files,
                                  out_dir=out_dir,
                                  exclude_tax_ids=args.exclude_tax_ids,
