@@ -1,10 +1,10 @@
 {
-  "name":"centrifuge-0.0.6-test",
-  "appId": "centrifuge-0.0.6",
-  "batchQueue": "normal",
+  "name":"centrifuge test-1530547954",
+  "appId": "centrifuge-1.0.4",
+  "batchQueue": "skx-normal",
   "executionSystem": "tacc-stampede2-kyclark",
   "maxRunTime": "12:00:00",
-  "memoryPerNode": "32GB",
+  "memoryPerNode": "96GB",
   "nodeCount": 1,
   "processorsPerNode": 16,
   "archive": true,
@@ -12,18 +12,17 @@
   "archivePath": null,
   "inputs": {
     "QUERY": [ 
-      "/kyclark/data/dolphin/fasta/Dolphin_1_z04.fa",
-      "/kyclark/data/dolphin/fasta/Dolphin_2_z09.fa"
+      "/kyclark/data/dolphin/fasta"
     ]
   },
   "parameters": {
-    "INDEX": "p+h+v",
-    "EXCLUDE_TAXIDS": "9606",
-    "FORMAT": "fasta"
+    "INDEX": "p_compressed+h+v",
+    "EXCLUDE_TAXIDS": "9606, 32630",
+    "FIGURE_TITLE": "The Dolphin Blowhole"
   },
   "notifications": [
     {
-      "url":"https://requestbin.agaveapi.co/1if1nnc1?job_id=${JOB_ID}&status=${JOB_STATUS}",
+      "url":"https://requestbin.agaveapi.co/t0159ut0?job_id=${JOB_ID}&status=${JOB_STATUS}",
       "event":"*",
       "persistent":true
     },

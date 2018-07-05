@@ -291,22 +291,26 @@ def main():
 
     if not file_format:
         exts = set()
-        for direction in input_files.keys():
+        for direction in input_files:
             for file in input_files[direction]:
-                base = re.sub('\.gz$', '', os.path.basename(file))
+                base = re.sub(r'\.gz$', '', os.path.basename(file))
                 _, ext = os.path.splitext(base)
                 exts.add(ext)
 
+        guesses = set()
         if len(exts) == 1:
-            ext = re.sub('^\.', '', exts.pop())
+            ext = re.sub(r'^\.', '', exts.pop())
             if re.match(r'f(?:ast|n)?a', ext):
-                file_format = 'fasta'
+                guesses.add('fasta')
             elif re.match(r'f(?:ast)?q', ext):
-                file_format = 'fastq'
+                guesses.add('fastq')
 
-        if not file_format:
-            msg = 'Cannot guess file format from extentions ({})'
-            die(msg.format(', '.join(exts)))
+        if len(guesses) == 1:
+            file_format = guesses.pop()
+        else:
+            msg = 'Cannot guess file format ({}) from extentions ({})'
+            die(msg.format(', '.join(guesses),
+                           ', '.join(exts)))
 
     valid_format = set(['fasta', 'fastq'])
     if not file_format in valid_format:

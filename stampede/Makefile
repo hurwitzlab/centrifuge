@@ -1,4 +1,4 @@
-APP = centrifuge-0.0.6
+APP = centrifuge-1.0.4
 EMAIL = kyclark@email.arizona.edu
 
 run: clean
@@ -62,4 +62,7 @@ imicrobe:
 	sbatch -N 4 -n 4 ./run.sh -d $(WORK)/iplantc.org/data/imicrobe/projects -o $(WORK)/iplantc.org/data/imicrobe/centrifuge 
 
 myriam:
-	sbatch ./run_centrifuge.sh -q $(WORK)/myriam/fasta/ -o $(WORK)/myriam/centrifuge
+	sbatch -p normal -t 12:00:00 ./run.sh -q $(WORK)/myriam/fasta/ -o $(WORK)/myriam/centrifuge-excluded -x 2,2157,9606,32630
+
+myriam_no_virus:
+	sbatch -p normal -t 12:00:00 ./run.sh -q $(WORK)/myriam/fasta/ -o $(WORK)/myriam/centrifuge-no-virus -x 10239,9606,32630

@@ -19,10 +19,7 @@
     "parallelism": "SERIAL",
     "templatePath": "template.sh",
     "testPath": "test.sh",
-    "modules": [
-        "tacc-singularity",
-        "launcher"
-    ],
+    "modules": [],
     "tags": [
         "centrifuge",
         "taxonomy",
@@ -102,7 +99,7 @@
                 "order": 2,
                 "required": false,
                 "visible": true,
-                "enquote": false,
+                "enquote": true,
                 "validator": ""
             },
             "details": {
@@ -134,7 +131,7 @@
             "details": {
                 "description": "FASTA (default) or FASTQ",
                 "label": "File format",
-                "argument": "-t ",
+                "argument": "-f ",
                 "repeatArgument": false,
                 "showArgument": true
             }
@@ -145,7 +142,7 @@
                 "default": false,
                 "type": "flag",
                 "order": 4,
-                "required": true,
+                "required": false,
                 "visible": true,
                 "enquote": false,
                 "validator": ""
@@ -161,10 +158,10 @@
         {
             "id": "FIGURE_TITLE",
             "value": {
-                "default": "Species abundance",
+                "default": "Species abundance by sample",
                 "type": "string",
                 "order": 5,
-                "required": true,
+                "required": false,
                 "visible": true,
                 "enquote": true,
                 "validator": ""
@@ -172,7 +169,7 @@
             "details": {
                 "description": "Title for bubble chart",
                 "label": "Figure title",
-                "argument": "-T",
+                "argument": "-T ",
                 "repeatArgument": false,
                 "showArgument": true
             }
