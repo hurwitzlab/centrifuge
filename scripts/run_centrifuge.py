@@ -295,11 +295,10 @@ def main():
             for file in input_files[direction]:
                 base = re.sub(r'\.gz$', '', os.path.basename(file))
                 _, ext = os.path.splitext(base)
-                exts.add(ext)
+                exts.add(re.sub(r'^\.', '', ext))
 
         guesses = set()
-        if len(exts) == 1:
-            ext = re.sub(r'^\.', '', exts.pop())
+        for ext in exts:
             if re.match(r'f(?:ast|n)?a', ext):
                 guesses.add('fasta')
             elif re.match(r'f(?:ast)?q', ext):
