@@ -22,7 +22,6 @@ unpaired:
 	-q "/home1/work/data/dolphin/fasta" \
 	-I "$(INDEX_DIR)" \
 	-i "p_compressed+h+v" \
-	-f fasta \
 	-o "/home1/work/data/centrifuge/dolphin-out" \
 	-T 'Dolphin Blowhole'
 
