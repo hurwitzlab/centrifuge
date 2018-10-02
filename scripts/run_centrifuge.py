@@ -198,6 +198,16 @@ def die(msg='Something went wrong'):
 
 
 # --------------------------------------------------
+def unique_extensions(files):
+    exts = set()
+    for file in files:
+        _, ext = os.path.splitext(file)
+        exts.add(ext[1:])  # skip leading "."
+
+    return exts
+
+
+# --------------------------------------------------
 def find_input_files(query, reads_are_paired):
     """Find input files from list of files/dirs"""
 
@@ -217,8 +227,10 @@ def find_input_files(query, reads_are_paired):
     forward = []
     reverse = []
     unpaired = []
+
     if reads_are_paired:
-        re_tmpl = '.+[_-][Rr]?{}[_-].*'
+        extensions = unique_extensions(files)
+        re_tmpl = '.+[_-][Rr]?{}\.(?:' + '|'.join(extensions) + ')$'
         forward_re = re.compile(re_tmpl.format('1'))
         reverse_re = re.compile(re_tmpl.format('2'))
 
