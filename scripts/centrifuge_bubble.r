@@ -64,6 +64,7 @@ plot.title = opt$title
 min.prop   = opt$proportion
 exclude    = unlist(strsplit(opt$exclude,"[[:space:]]*,[[:space:]]*"))
 
+
 #
 # SETWD: Location of centrifuge_report.tsv files. 
 # Should all be in same directory
@@ -156,7 +157,7 @@ bplot = ggplot(df, aes(as.factor(sample), as.factor(name))) +
         legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave(filename=file.path(out.dir, paste0(file.name, ".png")), plot=bplot, 
+ggsave(filename=file.path(out.dir, paste0(file.name, ".pdf")), plot=bplot, 
        width = width, height = height, units="in")
 
 write.csv(df, file = file.path(out.dir, paste0(file.name, ".csv")))

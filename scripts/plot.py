@@ -31,12 +31,12 @@ def get_args():
                         help='Tax rank',
                         metavar='str',
                         type=str,
-                        choices=['species'],
+                        choices=['genus', 'species'],
                         default='species')
 
     parser.add_argument('-m',
                         '--min',
-                        help='Minimum %',
+                        help='Minimum percent',
                         metavar='float',
                         type=float,
                         default=0.)
@@ -119,13 +119,21 @@ def main():
         die('No data!')
 
     df = pd.DataFrame(assigned)
-    plt.scatter(x=df['sample'],
-                y=df['tax_name'],
-                s=df['pct'] * args.multiplier,
-                alpha=0.5)
+    root, _ = os.path.splitext(args.outfile)
+    data_out = root + '.csv'
+    df.to_csv(data_out, index=False)
+
+    num_found = len(assigned)
+    print('At a {}% found {} {}'.format(min_pct, num_found, rank))
+    if num_found > 1000:
+        die('Too many to plot')
+
+    x = df['sample']
+    y = df['tax_name']
+    plt.figure(figsize=(5 + len(x.unique()) / 5, len(y.unique()) / 3))
+    plt.scatter(x, y, s=df['pct'] * args.multiplier, alpha=0.5)
     plt.xticks(rotation=45, ha='right')
-    plt.yticks(rotation=45, ha='right')
-    plt.gcf().subplots_adjust(bottom=.4, left=.3)
+    plt.gcf().subplots_adjust(bottom=.4, left=.4)
     plt.ylabel('Organism')
     plt.xlabel('Sample')
     if args.title:

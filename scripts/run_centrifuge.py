@@ -17,84 +17,81 @@ def get_args():
         description='Argparse Python script',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument(
-        '-q',
-        '--query',
-        help='File or directory of input',
-        metavar='str',
-        type=str,
-        action='append',
-        required=True)
+    parser.add_argument('-q',
+                        '--query',
+                        help='File or directory of input',
+                        metavar='str',
+                        type=str,
+                        action='append',
+                        required=True)
 
-    parser.add_argument(
-        '-r',
-        '--reads_are_paired',
-        help='Expect forward/reverse (1/2) reads in --query',
-        action='store_true')
+    parser.add_argument('-r',
+                        '--reads_are_paired',
+                        help='Expect forward/reverse (1/2) reads in --query',
+                        action='store_true')
 
-    parser.add_argument(
-        '-f',
-        '--format',
-        help='Input file format',
-        metavar='str',
-        type=str,
-        default='')
+    parser.add_argument('-f',
+                        '--format',
+                        help='Input file format',
+                        metavar='str',
+                        type=str,
+                        default='')
 
-    parser.add_argument(
-        '-i',
-        '--index',
-        help='Centrifuge index name',
-        metavar='str',
-        type=str,
-        default='p_compressed+h+v')
+    parser.add_argument('-i',
+                        '--index',
+                        help='Centrifuge index name',
+                        metavar='str',
+                        type=str,
+                        default='p_compressed+h+v')
 
-    parser.add_argument(
-        '-I',
-        '--index_dir',
-        help='Centrifuge index directory',
-        metavar='str',
-        type=str,
-        default='')
+    parser.add_argument('-I',
+                        '--index_dir',
+                        help='Centrifuge index directory',
+                        metavar='str',
+                        type=str,
+                        default='')
 
-    parser.add_argument(
-        '-o',
-        '--out_dir',
-        help='Output directory',
-        metavar='str',
-        type=str,
-        default=os.path.join(os.getcwd(), 'centrifuge-out'))
+    parser.add_argument('-o',
+                        '--out_dir',
+                        help='Output directory',
+                        metavar='str',
+                        type=str,
+                        default=os.path.join(os.getcwd(), 'centrifuge-out'))
 
-    parser.add_argument(
-        '-x',
-        '--exclude_tax_ids',
-        help='Comma-separated list of tax ids to exclude',
-        metavar='str',
-        type=str,
-        default='')
+    parser.add_argument('-x',
+                        '--exclude_tax_ids',
+                        help='Comma-separated list of tax ids to exclude',
+                        metavar='str',
+                        type=str,
+                        default='')
 
-    parser.add_argument(
-        '-T',
-        '--figure_title',
-        help='Title for the bubble chart',
-        metavar='str',
-        type=str,
-        default='Species abundance by sample')
+    parser.add_argument('-T',
+                        '--figure_title',
+                        help='Title for the bubble chart',
+                        metavar='str',
+                        type=str,
+                        default='Species abundance by sample')
 
-    parser.add_argument(
-        '-t',
-        '--threads',
-        help='Num of threads per instance of centrifuge',
-        metavar='int',
-        type=int,
-        default=1)
+    parser.add_argument('-t',
+                        '--threads',
+                        help='Num of threads per instance of centrifuge',
+                        metavar='int',
+                        type=int,
+                        default=1)
 
-    parser.add_argument(
-        '-P',
-        '--procs',
-        help='Max number of processes to run',
-        metavar='int',
-        type=int,
-        default=4)
+    parser.add_argument('-P',
+                        '--procs',
+                        help='Max number of processes to run',
+                        metavar='int',
+                        type=int,
+                        default=4)
+
+    parser.add_argument('-m',
+                        '--min_proportion',
+                        help='Minimum proportion to show',
+                        metavar='float',
+                        type=float,
+                        default=0.02)
 
     return parser.parse_args()
 
@@ -161,22 +158,22 @@ def main():
 
     msg = 'Files found: forward = "{}", reverse = "{}", unpaired = "{}"'
     print(
-        msg.format(
-            len(input_files['forward']), len(input_files['reverse']),
-            len(input_files['unpaired'])))
+        msg.format(len(input_files['forward']), len(input_files['reverse']),
+                   len(input_files['unpaired'])))
 
-    reports_dir = run_centrifuge(
-        file_format=file_format,
-        files=input_files,
-        out_dir=out_dir,
-        exclude_tax_ids=args.exclude_tax_ids,
-        index_dir=index_dir,
-        index_name=index_name,
-        threads=args.threads,
-        procs=args.procs)
+    reports_dir = run_centrifuge(file_format=file_format,
+                                 files=input_files,
+                                 out_dir=out_dir,
+                                 exclude_tax_ids=args.exclude_tax_ids,
+                                 index_dir=index_dir,
+                                 index_name=index_name,
+                                 threads=args.threads,
+                                 procs=args.procs)
 
-    fig_dir = make_bubble(
-        reports_dir=reports_dir, out_dir=out_dir, title=args.figure_title)
+    fig_dir = make_bubble(reports_dir=reports_dir,
+                          out_dir=out_dir,
+                          title=args.figure_title,
+                          min_proportion=args.min_proportion)
 
     print('Done, reports in "{}", figures in "{}"'.format(
         reports_dir, fig_dir))
@@ -353,7 +350,7 @@ def get_excluded_tax(ids):
 
 
 # --------------------------------------------------
-def make_bubble(reports_dir, out_dir, title):
+def make_bubble(reports_dir, out_dir, title, min_proportion):
     """Make bubble chart"""
 
     fig_dir = os.path.join(out_dir, 'figures')
@@ -363,8 +360,8 @@ def make_bubble(reports_dir, out_dir, title):
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     bubble = os.path.join(cur_dir, 'centrifuge_bubble.r')
-    tmpl = '{} --dir "{}" --title "{}" --outdir "{}"'
-    job = tmpl.format(bubble, reports_dir, title, fig_dir)
+    tmpl = '{} --dir "{}" --title "{}" --outdir "{}" -p {}'
+    job = tmpl.format(bubble, reports_dir, title, fig_dir, min_proportion)
     warn(job)
 
     subprocess.run(job, shell=True)
