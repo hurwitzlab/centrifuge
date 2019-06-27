@@ -11,6 +11,7 @@ import os
 import re
 import pandas as pd
 import matplotlib.pyplot as plt
+from functools import partial
 from dire import die
 
 # --------------------------------------------------
@@ -21,22 +22,25 @@ def get_args():
         description='Plot Centrifuge out',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('dir',
-                        metavar='DIR',
-                        type=str,
-                        help='Centrifuge output directory')
+    parser.add_argument('file',
+                        metavar='FILE',
+                        type=argparse.FileType('r'),
+                        nargs='+',
+                        help='Centrifuge .tsv file(s)')
 
     parser.add_argument('-r',
                         '--rank',
                         help='Tax rank',
                         metavar='str',
                         type=str,
-                        choices=['genus', 'species'],
+                        choices=('class family genus kingdom leaf'
+                                 'order phylum species subspecies'
+                                 'superkingdom').split(),
                         default='species')
 
     parser.add_argument('-m',
                         '--min',
-                        help='Minimum percent',
+                        help='Minimum percentage',
                         metavar='float',
                         type=float,
                         default=0.)
@@ -53,6 +57,7 @@ def get_args():
                         help='Tax IDs or names to exclude',
                         metavar='str',
                         type=str,
+                        nargs='+',
                         default='')
 
     parser.add_argument('-t',
@@ -67,81 +72,140 @@ def get_args():
                         help='Output file',
                         metavar='str',
                         type=str,
-                        default='bubble.png')
+                        default='./out/bubble.png')
 
-    return parser.parse_args()
+    parser.add_argument('-p',
+                        '--max_plot',
+                        help='Max samples to plot',
+                        metavar='int',
+                        type=int,
+                        default=1000)
 
+    parser.add_argument('-H',
+                        '--img_height',
+                        help='Image height',
+                        metavar='float',
+                        type=float,
+                        default=0.)
+
+    parser.add_argument('-w',
+                        '--img_width',
+                        help='Image width',
+                        metavar='float',
+                        type=float,
+                        default=0.)
+
+    parser.add_argument('-O',
+                        '--show_image',
+                        help='Show image', action='store_true')
+
+    args = parser.parse_args()
+
+    if not args.title:
+        args.title = '{} abundance'.format(args.rank.title() or 'Organism')
+
+    args.exclude = list(map(str.lower, args.exclude))
+
+    return args
 
 # --------------------------------------------------
 def main():
     """Make a jazz noise here"""
 
     args = get_args()
-    rank = args.rank
+    rank_wanted = args.rank
     min_pct = args.min
-    exclude = re.split('\s*,\s*', args.exclude.lower())
-    cent_dir = args.dir
+    exclude = args.exclude
+    assigned = {}
 
-    if not os.path.isdir(cent_dir):
-        die('"{}" is not a directory'.format(cent_dir))
+    below_genus = partial(re.search, '(species|leaf)')
+    below_species = partial(re.search, '(subspecies|leaf)')
+    is_virus = lambda name: re.search('(phage|virus)', name, re.IGNORECASE)
 
-    tsv_files = list(filter(lambda f: f.endswith('.tsv'), os.listdir(cent_dir)))
-    if not tsv_files:
-        die('Found no ".tsv" files in "{}"'.format(cent_dir))
+    for i, fh in enumerate(args.file, start=1):
+        print('{:3}: {}'.format(i, fh.name))
 
-    assigned = []
-    for i, file in enumerate(tsv_files, start=1):
-        print('{:3}: {}'.format(i, file))
+        reader = csv.DictReader(fh, delimiter='\t')
+        for rec in reader:
+            tax_name = rec['name']
+            tax_rank = rec['taxRank']
 
-        with open(os.path.join(cent_dir, file)) as fh:
-            reader = csv.DictReader(fh, delimiter='\t')
-            for rec in filter(lambda r: r['taxRank'] == rank, reader):
-                tax_id = rec['taxID']
-                tax_name = rec['name']
+            if rank_wanted == 'genus' and below_genus(tax_rank):
+                tax_rank = 'genus'
+                if not is_virus(tax_name):
+                    tax_name = tax_name.split()[0]
+            elif rank_wanted == 'species' and below_species(tax_rank):
+                tax_rank = 'species'
+                if not is_virus(tax_name):
+                    tax_name = ' '.join(tax_name.split()[:2])
 
-                if tax_id in exclude or tax_name.lower() in exclude:
-                    continue
+            if rank_wanted and (rank_wanted != tax_rank):
+                continue
 
+            if rec['taxID'] in exclude or tax_name.lower() in exclude:
+                continue
+
+            try:
                 pct = float(rec.get('abundance'))
-                if min_pct and pct < min_pct:
-                    continue
+                reads = int(rec['numReads'])
+            except:
+                continue
 
-                sample, _ = os.path.splitext(file)
-                assigned.append({
-                    'sample': sample,
-                    'tax_id': tax_id,
-                    'tax_name': tax_name,
-                    'pct': pct,
-                    'reads': int(rec['numReads'])
-                })
+            sample, _ = os.path.splitext(os.path.basename(fh.name))
+            key = (sample, tax_name)
+            if key in assigned:
+                assigned[key]['pct'] += pct
+                assigned[key]['reads'] += reads
+            else:
+                assigned[key] = {'pct': pct, 'reads': reads}
 
     if not assigned:
-        die('No data!')
+        die('No data')
 
-    df = pd.DataFrame(assigned)
-    root, _ = os.path.splitext(args.outfile)
-    data_out = root + '.csv'
-    df.to_csv(data_out, index=False)
+    data = []
+    for key, d in assigned.items():
+        sample, tax_name = list(key)
+        if min_pct and d['pct'] < min_pct:
+            continue
 
-    num_found = len(assigned)
-    print('At a {}% found {} {}'.format(min_pct, num_found, rank))
-    if num_found > 1000:
-        die('Too many to plot')
+        data.append({
+            'sample': sample,
+            'tax_name': tax_name,
+            'pct': d['pct'],
+            'reads': d['reads'],
+        })
 
-    x = df['sample']
-    y = df['tax_name']
-    plt.figure(figsize=(5 + len(x.unique()) / 5, len(y.unique()) / 3))
-    plt.scatter(x, y, s=df['pct'] * args.multiplier, alpha=0.5)
-    plt.xticks(rotation=45, ha='right')
-    plt.gcf().subplots_adjust(bottom=.4, left=.4)
-    plt.ylabel('Organism')
-    plt.xlabel('Sample')
-    if args.title:
-        plt.title(args.title)
+    num_found = len(data)
+    print('Found {} at min {}%'.format(num_found, min_pct))
 
-    plt.savefig(args.outfile)
+    df = pd.DataFrame(data)
+    out_dir = os.path.dirname(os.path.abspath(args.outfile))
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
+    basename, _ = os.path.splitext(os.path.basename(args.outfile))
+    df.to_csv(os.path.join(out_dir, basename + '.csv'))
 
-    print('Done, see "{}"'.format(args.outfile))
+    if num_found > args.max_plot:
+        print('Too many to plot (>{})!'.format(args.max_plot))
+    else:
+        x = df['sample']
+        y = df['tax_name']
+        img_width = args.img_width or 5 + len(x.unique()) / 5
+        img_height = args.img_height or len(y.unique()) / 3
+        plt.figure(figsize=(img_width, img_height))
+        plt.scatter(x, y, s=df['pct'] * 100, alpha=0.5)
+        plt.xticks(rotation=45, ha='right')
+        plt.gcf().subplots_adjust(bottom=.4, left=.4)
+        plt.ylabel('Organism')
+        plt.xlabel('Sample')
+        if args.title:
+            plt.title(args.title)
+
+        plt.savefig(args.outfile)
+        if args.show_image:
+            plt.show()
+
+    print('Done, see csv/plot in out_dir "{}"'.format(out_dir))
 
 
 # --------------------------------------------------
