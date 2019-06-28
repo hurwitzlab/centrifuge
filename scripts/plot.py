@@ -12,7 +12,8 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 from functools import partial
-from dire import die
+from collections import defaultdict
+from dire import die, warn
 
 # --------------------------------------------------
 def get_args():
@@ -116,14 +117,18 @@ def main():
     rank_wanted = args.rank
     min_pct = args.min
     exclude = args.exclude
-    assigned = {}
 
     below_genus = partial(re.search, '(species|leaf)')
     below_species = partial(re.search, '(subspecies|leaf)')
     is_virus = lambda name: re.search('(phage|virus)', name, re.IGNORECASE)
 
+    assigned = defaultdict(dict)
     for i, fh in enumerate(args.file, start=1):
         print('{:3}: {}'.format(i, fh.name))
+
+        sample, _ = os.path.splitext(os.path.basename(fh.name))
+        if not sample in assigned:
+            assigned[sample] = defaultdict(int)
 
         reader = csv.DictReader(fh, delimiter='\t')
         for rec in reader:
@@ -146,34 +151,36 @@ def main():
                 continue
 
             try:
-                pct = float(rec.get('abundance'))
-                reads = int(rec['numReads'])
+                reads = int(rec['numUniqueReads'])
             except:
                 continue
 
-            sample, _ = os.path.splitext(os.path.basename(fh.name))
-            key = (sample, tax_name)
-            if key in assigned:
-                assigned[key]['pct'] += pct
-                assigned[key]['reads'] += reads
-            else:
-                assigned[key] = {'pct': pct, 'reads': reads}
+            if reads > 0:
+                assigned[sample][tax_name] += reads
 
     if not assigned:
         die('No data')
 
     data = []
-    for key, d in assigned.items():
-        sample, tax_name = list(key)
-        if min_pct and d['pct'] < min_pct:
+    for sample in assigned:
+        total_reads = sum(assigned[sample].values())
+
+        if total_reads == 0:
+            warn('No reads for "{}"?'.format(sample))
             continue
 
-        data.append({
-            'sample': sample,
-            'tax_name': tax_name,
-            'pct': d['pct'],
-            'reads': d['reads'],
-        })
+        for tax_name, reads in assigned[sample].items():
+            pct = reads / total_reads
+
+            if min_pct and pct < min_pct:
+                continue
+
+            data.append({
+                'sample': sample,
+                'tax_name': tax_name,
+                'pct': pct,
+                'reads': reads,
+            })
 
     num_found = len(data)
     print('Found {} at min {}%'.format(num_found, min_pct))
@@ -183,7 +190,7 @@ def main():
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
     basename, _ = os.path.splitext(os.path.basename(args.outfile))
-    df.to_csv(os.path.join(out_dir, basename + '.csv'))
+    df.to_csv(os.path.join(out_dir, basename + '.csv'), index=False)
 
     if num_found > args.max_plot:
         print('Too many to plot (>{})!'.format(args.max_plot))
