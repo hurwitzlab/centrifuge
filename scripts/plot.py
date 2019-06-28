@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from functools import partial
 from collections import defaultdict
 from dire import die, warn
-from typing import List, TextIO
+from typing import List, Dict, TextIO
 
 # --------------------------------------------------
 def get_args():
@@ -111,7 +111,7 @@ def get_args():
     return args
 
 # --------------------------------------------------
-def parse_files(files: List[TextIO]) -> List[dict]:
+def parse_files(files: List[TextIO], rank_wanted: str, exclude: List[str], min_pct: float) -> List[dict]:
     """Parse the files"""
 
     below_genus = partial(re.search, '(species|leaf)')
@@ -192,15 +192,12 @@ def main():
     """Make a jazz noise here"""
 
     args = get_args()
-    rank_wanted = args.rank
-    min_pct = args.min
-    exclude = args.exclude
-    data = parse_files(args.file)
+    data = parse_files(args.file, args.rank, args.exclude, args.min)
 
     num_found = len(data)
-    print('Found {} at min {}%'.format(num_found, min_pct))
+    print('Found {} at min {}%'.format(num_found, args.min))
 
-    if num_found == 0:
+    if num_found > 0:
         df = pd.DataFrame(data)
         out_dir = os.path.dirname(os.path.abspath(args.outfile))
         if not os.path.isdir(out_dir):
@@ -227,8 +224,7 @@ def main():
             plt.savefig(args.outfile)
             if args.show_image:
                 plt.show()
-
-    print('Done, see csv/plot in out_dir "{}"'.format(out_dir))
+        print('Done, see csv/plot in out_dir "{}"'.format(out_dir))
 
 
 # --------------------------------------------------
