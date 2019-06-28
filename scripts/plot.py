@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from functools import partial
 from collections import defaultdict
 from dire import die, warn
+from typing import List, TextIO
 
 # --------------------------------------------------
 def get_args():
@@ -110,25 +111,20 @@ def get_args():
     return args
 
 # --------------------------------------------------
-def main():
-    """Make a jazz noise here"""
-
-    args = get_args()
-    rank_wanted = args.rank
-    min_pct = args.min
-    exclude = args.exclude
+def parse_files(files: List[TextIO]) -> List[dict]:
+    """Parse the files"""
 
     below_genus = partial(re.search, '(species|leaf)')
     below_species = partial(re.search, '(subspecies|leaf)')
     is_virus = lambda name: re.search('(phage|virus)', name, re.IGNORECASE)
 
-    assigned = defaultdict(dict)
-    for i, fh in enumerate(args.file, start=1):
+    assigned = {}
+    for i, fh in enumerate(files, start=1):
         print('{:3}: {}'.format(i, fh.name))
 
         sample, _ = os.path.splitext(os.path.basename(fh.name))
         if not sample in assigned:
-            assigned[sample] = defaultdict(int)
+            assigned[sample] = {}
 
         reader = csv.DictReader(fh, delimiter='\t')
         for rec in reader:
@@ -152,25 +148,30 @@ def main():
 
             try:
                 reads = int(rec['numUniqueReads'])
+                abundance = float(rec['abundance'])
             except:
                 continue
 
-            if reads > 0:
-                assigned[sample][tax_name] += reads
+            if reads == 0:
+                continue
 
-    if not assigned:
-        die('No data')
+            if not tax_name in assigned[sample]:
+                assigned[sample][tax_name] = {'reads': 0, 'abundance': 0}
+
+            assigned[sample][tax_name]['reads'] += reads
+            assigned[sample][tax_name]['abundance'] += abundance
 
     data = []
     for sample in assigned:
-        total_reads = sum(assigned[sample].values())
+        total_reads = sum([assigned[sample][tax_name]['reads']
+                           for tax_name in assigned[sample]])
 
         if total_reads == 0:
             warn('No reads for "{}"?'.format(sample))
             continue
 
-        for tax_name, reads in assigned[sample].items():
-            pct = reads / total_reads
+        for tax_name, d in assigned[sample].items():
+            pct = d['reads'] / total_reads
 
             if min_pct and pct < min_pct:
                 continue
@@ -179,38 +180,53 @@ def main():
                 'sample': sample,
                 'tax_name': tax_name,
                 'pct': pct,
-                'reads': reads,
+                'reads': d['reads'],
+                'abundance': d['abundance']
             })
+
+    return data
+
+
+# --------------------------------------------------
+def main():
+    """Make a jazz noise here"""
+
+    args = get_args()
+    rank_wanted = args.rank
+    min_pct = args.min
+    exclude = args.exclude
+    data = parse_files(args.file)
 
     num_found = len(data)
     print('Found {} at min {}%'.format(num_found, min_pct))
 
-    df = pd.DataFrame(data)
-    out_dir = os.path.dirname(os.path.abspath(args.outfile))
-    if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
-    basename, _ = os.path.splitext(os.path.basename(args.outfile))
-    df.to_csv(os.path.join(out_dir, basename + '.csv'), index=False)
+    if num_found == 0:
+        df = pd.DataFrame(data)
+        out_dir = os.path.dirname(os.path.abspath(args.outfile))
+        if not os.path.isdir(out_dir):
+            os.makedirs(out_dir)
+        basename, _ = os.path.splitext(os.path.basename(args.outfile))
+        df.to_csv(os.path.join(out_dir, basename + '.csv'), index=False)
 
-    if num_found > args.max_plot:
-        print('Too many to plot (>{})!'.format(args.max_plot))
-    else:
-        x = df['sample']
-        y = df['tax_name']
-        img_width = args.img_width or 5 + len(x.unique()) / 5
-        img_height = args.img_height or len(y.unique()) / 3
-        plt.figure(figsize=(img_width, img_height))
-        plt.scatter(x, y, s=df['pct'] * 100, alpha=0.5)
-        plt.xticks(rotation=45, ha='right')
-        plt.gcf().subplots_adjust(bottom=.4, left=.4)
-        plt.ylabel('Organism')
-        plt.xlabel('Sample')
-        if args.title:
-            plt.title(args.title)
+        if num_found > args.max_plot:
+            print('Too many to plot (>{})!'.format(args.max_plot))
+        else:
+            x = df['sample']
+            y = df['tax_name']
+            img_width = args.img_width or 5 + len(x.unique()) / 5
+            img_height = args.img_height or len(y.unique()) / 3
+            plt.figure(figsize=(img_width, img_height))
+            plt.scatter(x, y, s=df['pct'] * 100, alpha=0.5)
+            plt.xticks(rotation=45, ha='right')
+            plt.gcf().subplots_adjust(bottom=.4, left=.4)
+            plt.ylabel('Organism')
+            plt.xlabel('Sample')
+            if args.title:
+                plt.title(args.title)
 
-        plt.savefig(args.outfile)
-        if args.show_image:
-            plt.show()
+            plt.savefig(args.outfile)
+            if args.show_image:
+                plt.show()
 
     print('Done, see csv/plot in out_dir "{}"'.format(out_dir))
 
