@@ -16,6 +16,7 @@ from collections import defaultdict
 from dire import die, warn
 from typing import List, Dict, TextIO
 
+
 # --------------------------------------------------
 def get_args():
     """Get command-line arguments"""
@@ -74,7 +75,7 @@ def get_args():
                         help='Output file',
                         metavar='str',
                         type=str,
-                        default='./out/bubble.png')
+                        default='bubble.png')
 
     parser.add_argument('-p',
                         '--max_plot',
@@ -99,7 +100,8 @@ def get_args():
 
     parser.add_argument('-O',
                         '--show_image',
-                        help='Show image', action='store_true')
+                        help='Show image',
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -110,8 +112,10 @@ def get_args():
 
     return args
 
+
 # --------------------------------------------------
-def parse_files(files: List[TextIO], rank_wanted: str, exclude: List[str], min_pct: float) -> List[dict]:
+def parse_files(files: List[TextIO], rank_wanted: str, exclude: List[str],
+                min_pct: float) -> List[dict]:
     """Parse the files"""
 
     below_genus = partial(re.search, '(species|leaf)')
@@ -163,8 +167,10 @@ def parse_files(files: List[TextIO], rank_wanted: str, exclude: List[str], min_p
 
     data = []
     for sample in assigned:
-        total_reads = sum([assigned[sample][tax_name]['reads']
-                           for tax_name in assigned[sample]])
+        total_reads = sum([
+            assigned[sample][tax_name]['reads']
+            for tax_name in assigned[sample]
+        ])
 
         if total_reads == 0:
             warn('No reads for "{}"?'.format(sample))
@@ -192,6 +198,7 @@ def main():
     """Make a jazz noise here"""
 
     args = get_args()
+    print(args)
     data = parse_files(args.file, args.rank, args.exclude, args.min)
 
     num_found = len(data)

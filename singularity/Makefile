@@ -1,7 +1,6 @@
 SINGULARITY = /usr/local/bin/singularity
 IMG = centrifuge-1.0.4.img
 DEF = image.def
-SIZE = 1536
 INDEX_DIR = /work/centrifuge-indexes
 
 run:
@@ -11,8 +10,10 @@ clean:
 	rm -f $(IMG)
 
 img: clean
-	sudo $(SINGULARITY) create --size $(SIZE) $(IMG)
-	sudo $(SINGULARITY) bootstrap $(IMG) $(DEF)
+	sudo $(SINGULARITY) build $(IMG) $(DEF)
+
+sandbox: clean
+	sudo $(SINGULARITY) build --sandbox $(IMG) $(DEF)
 
 shell:
 	sudo $(SINGULARITY) shell --writable -B $(shell pwd):/tmp -B /data:/work -B $(HOME):/home1 $(IMG)

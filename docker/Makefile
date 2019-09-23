@@ -1,2 +1,7 @@
+TAG = centrifuge
+
 img:
-	docker build --tag=centrifuge .
+	docker build --tag=$(TAG) .
+
+shell:
+	docker run -it $(TAG) bash
