@@ -24,7 +24,7 @@ class Args:
     index: str
     index_dir: str
     out_dir: str
-    exclude_tax_ids: str
+    exclude_tax_ids: List[int]
     figure_title: str
     num_threads: int
     num_procs: int
@@ -136,12 +136,20 @@ def get_args() -> Args:
         tmpl = '--index "{}" is not valid, please choose from: {}'
         parser.error(tmpl.format(args.index, ', '.join(sorted(valid_index))))
 
+    exclude_ids = list(
+        map(
+            int,
+            filter(
+                str.isnumeric,
+                chain(*map(str.split, re.split('\s*,\s*',
+                                               args.exclude_tax_ids))))))
+
     return Args(query=args.query,
                 format=args.format,
                 index=args.index,
                 index_dir=args.index_dir,
                 out_dir=args.out_dir,
-                exclude_tax_ids=args.exclude_tax_ids,
+                exclude_tax_ids=exclude_ids,
                 figure_title=args.figure_title,
                 num_threads=args.threads,
                 num_procs=args.procs,
@@ -169,11 +177,7 @@ def main():
         len(files['forward']), len(files['reverse']), len(files['unpaired']))
 
     reports_dir = run_centrifuge(files, args)
-
-    fig_dir = make_bubble(reports_dir=reports_dir,
-                          out_dir=args.out_dir,
-                          title=args.figure_title,
-                          min_proportion=args.min_proportion)
+    fig_dir = make_bubble(reports_dir, args)
 
     print(f'Done, reports in "{reports_dir}", figures in "{fig_dir}"')
 
@@ -242,10 +246,8 @@ def run_centrifuge(files: Dict[str, List[str]], args: Args) -> str:
     if not os.path.isdir(reports_dir):
         os.makedirs(reports_dir)
 
-    exclude_ids = list(
-        filter(str.isnumeric, re.split(r'\s*,\s*', args.exclude_tax_ids)))
-    exclude_arg = '--exclude-taxids ' + ','.join(
-        exclude_ids) if exclude_ids else ''
+    exclude_arg = '--exclude-taxids ' + ','.join(map(str,
+        args.exclude_tax_ids)) if args.exclude_tax_ids else ''
 
     file_format = args.format or get_file_formats(list(chain(*files.values())))
     if not file_format:
@@ -258,7 +260,6 @@ def run_centrifuge(files: Dict[str, List[str]], args: Args) -> str:
     cmd_base = cmd_tmpl.format(args.index_dir, exclude_arg, format_arg,
                                args.num_threads, args.index)
 
-    print(files)
     commands = []
     for file in files['unpaired']:
         basename = os.path.basename(file)
@@ -290,11 +291,10 @@ def run_centrifuge(files: Dict[str, List[str]], args: Args) -> str:
 
 
 # --------------------------------------------------
-def make_bubble(reports_dir: str, out_dir: str, title: str,
-                min_proportion: float) -> str:
+def make_bubble(reports_dir: str, args: Args) -> str:
     """Make bubble chart"""
 
-    fig_dir = os.path.join(out_dir, 'figures')
+    fig_dir = os.path.join(args.out_dir, 'figures')
     if not os.path.isdir(fig_dir):
         os.makedirs(fig_dir)
 
@@ -305,9 +305,9 @@ def make_bubble(reports_dir: str, out_dir: str, title: str,
         raise Exception(f'Cannot find "{bubble}"')
 
     tmpl = '{} --title "{}" --outfile "{}" --min {} {}/*.tsv'
-    job = tmpl.format(bubble, title, os.path.join(fig_dir, 'bubble.png'),
-                      min_proportion, reports_dir)
-    print(job)
+    job = tmpl.format(bubble, args.figure_title,
+                      os.path.join(fig_dir, 'bubble.png'), args.min_proportion,
+                      reports_dir)
     logging.debug('Running %s', job)
 
     subprocess.run(job, shell=True)
@@ -357,7 +357,7 @@ def check_sra(files: List[str]) -> List[str]:
             tmpdir = tempfile.TemporaryDirectory()
             subprocess.run(tmpl.format(tmpdir.name, file), shell=True)
 
-            for fasta in filter(lambda f: f.endswith('.fasta'),
+            for fasta in filter(lambda f: re.search('.f(?:ast|n)?a', f),
                                 os.listdir(tmpdir.name)):
                 new = os.path.join(srcdir, fasta)
                 shutil.move(os.path.join(tmpdir.name, fasta), new)

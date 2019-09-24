@@ -198,7 +198,6 @@ def main():
     """Make a jazz noise here"""
 
     args = get_args()
-    print(args)
     data = parse_files(args.file, args.rank, args.exclude, args.min)
 
     num_found = len(data)

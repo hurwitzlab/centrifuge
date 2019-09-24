@@ -1,6 +1,6 @@
 BootStrap: docker
-#From: ubuntu:latest
-From: ubuntu:14.04
+From: ubuntu:latest
+#From: ubuntu:14.04
 
 %environment
     PATH=/root/miniconda3/bin:/app/centrifuge/scripts:$PATH
@@ -53,18 +53,18 @@ From: ubuntu:14.04
     #
     # Add CRAN to sources to get latest R
     #
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
-    apt-get install -y r-base r-base-dev
-
-    cd $HOME
-    cat << EOF > .Rprofile
-local({
-  r = getOption("repos")
-  r["CRAN"] = "http://mirrors.nics.utk.edu/cran/"
-  options(repos = r)
-})
-EOF
-    /usr/bin/Rscript /app/centrifuge/scripts/install.r
+#    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+#    apt-get install -y r-base r-base-dev
+#
+#    cd $HOME
+#    cat << EOF > .Rprofile
+#local({
+#  r = getOption("repos")
+#  r["CRAN"] = "http://mirrors.nics.utk.edu/cran/"
+#  options(repos = r)
+#})
+#EOF
+#    /usr/bin/Rscript /app/centrifuge/scripts/install.r
 
     #
     # Mount points for TACC directories

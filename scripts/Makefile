@@ -17,7 +17,7 @@ sra: clean_sra
 clean_unpaired:
 	rm -rf $(HOME)/work/data/centrifuge/dolphin-out
 
-unpaired: # clean_unpaired
+unpaired: clean_unpaired
 	./run_centrifuge.py -u -v -q $(HOME)/work/data/dolphin/fasta \
 	-I $(INDEX_DIR) -i 'p_compressed+h+v' \
 	-o $(HOME)/work/data/centrifuge/dolphin-out -T 'Dolphin Blowhole'
@@ -28,7 +28,7 @@ clean_paired:
 paired: clean_paired
 	./run_centrifuge.py \
 	-q $(HOME)/work/data/centrifuge/paired \
-	-r -I $(INDEX_DIR) \
+	-I $(INDEX_DIR) \
 	-i 'p_compressed+h+v' \
 	-x "9606, 32630" \
 	-o $(HOME)/work/data/centrifuge/paired-out \
