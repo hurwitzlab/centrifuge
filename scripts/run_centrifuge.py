@@ -13,6 +13,7 @@ from itertools import chain
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 import parallelprocs
+from shutil import which
 
 
 @dataclass
@@ -346,7 +347,11 @@ def get_file_formats(files: List[str]) -> Optional[str]:
 def check_sra(files: List[str]) -> List[str]:
     """Unpack FASTA from any SRA files"""
 
-    tmpl = 'fastq-dump --fasta --split-files -O {} {}'
+    fastq_dump = which('fastq-dump')
+    if not fastq_dump:
+        raise Exception('Cannot find "fastq-dump"')
+
+    tmpl = fastq_dump + ' --fasta --split-files -O {} {}'
     new_files = []
 
     for file in files:
