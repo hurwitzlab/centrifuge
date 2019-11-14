@@ -164,7 +164,6 @@ def main():
     """Make a jazz noise here"""
 
     args = get_args()
-    print(args)
 
     logging.basicConfig(
         filename='.log',
