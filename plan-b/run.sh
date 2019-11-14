@@ -2,12 +2,11 @@
 
 set -u
 
-echo $PWD
 CWD=$(dirname "$0")
 IMG="$CWD/centrifuge-1.0.4.img"
-OUT_DIR="$PWD/centrifuge-out"
+OUT_DIR="$(dirname $CWD)/data/centrifuge-out"
 INDEX_DIR="/data/centrifuge-indexes"
-RUN_CENTRIFUGE="singularity exec $IMG run_centrifuge.py"
+RUN_CENTRIFUGE="singularity exec -B /data:/data $IMG run_centrifuge.py"
 
 #
 # Show HELP if no arguments
@@ -22,4 +21,4 @@ if [[ ! -d "$INDEX_DIR" ]]; then
     exit 1
 fi
 
-$RUN_CENTRIFUGE -I "$INDEX_DIR" "$@"
+$RUN_CENTRIFUGE -I "$INDEX_DIR" -o "$OUT_DIR" "$@"
