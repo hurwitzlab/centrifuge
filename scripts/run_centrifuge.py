@@ -20,7 +20,7 @@ from shutil import which
 class Args:
     """Command-line args"""
 
-    query: str
+    query: List[str]
     format: str
     index: str
     index_dir: str
@@ -47,7 +47,7 @@ def get_args() -> Args:
                         help='File or directory of input',
                         metavar='str',
                         type=str,
-                        action='append',
+                        nargs='+',
                         required=True)
 
     parser.add_argument('-f',
@@ -184,7 +184,7 @@ def main():
 
 
 # --------------------------------------------------
-def find_input_files(query: str) -> List[str]:
+def find_input_files(query: List[str]) -> List[str]:
     """Find input files from list of files/dirs"""
 
     files: List[str] = []
