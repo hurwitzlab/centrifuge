@@ -32,6 +32,7 @@ class Args:
     min_proportion: float
     verbose: bool
     reads_not_paired: bool
+    num_halt: int
 
 
 # --------------------------------------------------
@@ -107,6 +108,13 @@ def get_args() -> Args:
                         type=int,
                         default=4)
 
+    parser.add_argument('-H',
+                        '--num_halt',
+                        help='Halt after this many failing jobs',
+                        metavar='int',
+                        type=int,
+                        default=0)
+
     parser.add_argument('-m',
                         '--min_proportion',
                         help='Minimum proportion to show',
@@ -133,7 +141,7 @@ def get_args() -> Args:
         map(lambda s: re.sub(r'\.\d+\.cf$', '', os.path.basename(s)),
             os.listdir(args.index_dir)))
 
-    if not args.index in valid_index:
+    if args.index not in valid_index:
         tmpl = '--index "{}" is not valid, please choose from: {}'
         parser.error(tmpl.format(args.index, ', '.join(sorted(valid_index))))
 
@@ -142,7 +150,7 @@ def get_args() -> Args:
             int,
             filter(
                 str.isnumeric,
-                chain(*map(str.split, re.split('\s*,\s*',
+                chain(*map(str.split, re.split(r'\s*,\s*',
                                                args.exclude_tax_ids))))))
 
     return Args(query=args.query,
@@ -156,7 +164,8 @@ def get_args() -> Args:
                 num_procs=args.procs,
                 min_proportion=args.min_proportion,
                 verbose=args.verbose,
-                reads_not_paired=args.reads_not_paired)
+                reads_not_paired=args.reads_not_paired,
+                num_halt=args.num_halt)
 
 
 # --------------------------------------------------
@@ -247,8 +256,8 @@ def run_centrifuge(files: Dict[str, List[str]], args: Args) -> str:
     if not os.path.isdir(reports_dir):
         os.makedirs(reports_dir)
 
-    exclude_arg = '--exclude-taxids ' + ','.join(map(str,
-        args.exclude_tax_ids)) if args.exclude_tax_ids else ''
+    exclude_arg = '--exclude-taxids ' + ','.join(map(
+        str, args.exclude_tax_ids)) if args.exclude_tax_ids else ''
 
     file_format = args.format or get_file_formats(list(chain(*files.values())))
     if not file_format:
@@ -286,7 +295,7 @@ def run_centrifuge(files: Dict[str, List[str]], args: Args) -> str:
                       msg='Running Centrifuge',
                       num_procs=args.num_procs,
                       verbose=args.verbose,
-                      halt=1)
+                      halt=args.num_halt)
 
     return reports_dir
 
