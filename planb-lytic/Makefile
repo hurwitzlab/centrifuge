@@ -1,11 +1,9 @@
 APP = centrifuge-1.0.4
 
-img:
+img: ../singularity/${APP}.img
 	cd ../singularity && make img
 
 deploy: img
-	icd \
-	imkdir -p applications/$APP/plan-b_lytic \
-	icd applications/$APP/plan-b_lytic \
-        iput -TP ../singularity/$APP.img \
-	iput -TP run.sh
+	icd && imkdir -p applications/${APP}/planb-lytic
+	iput -TP ../singularity/${APP}.img applications/${APP}/planb-lytic
+	iput -TP run.sh applications/${APP}/planb-lytic
