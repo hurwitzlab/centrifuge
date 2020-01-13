@@ -40,7 +40,7 @@ def get_args() -> Args:
     """Get command-line args"""
 
     parser = argparse.ArgumentParser(
-        description='Argparse Python script',
+        description='Run Centrifuge',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-q',
@@ -181,7 +181,6 @@ def main():
 
     files = group_input_files(check_sra(find_input_files(args.query)),
                               args.reads_not_paired)
-
     logging.debug(
         'Files found: forward = "%s", reverse = "%s", unpaired = "%s"',
         len(files['forward']), len(files['reverse']), len(files['unpaired']))
@@ -218,7 +217,7 @@ def group_input_files(files: List[str],
         ret['unpaired'] = files
     else:
         rm_dot = lambda s: re.sub(r'^[.]', '', s)
-        extensions = map(rm_dot, set(map(get_extension, files)))
+        extensions = list(map(rm_dot, set(map(get_extension, files))))
         re_tmpl = r'(.+)[_-][Rr]?{}\.(?:' + '|'.join(extensions) + ')$'
         forward_re = re.compile(re_tmpl.format('1'))
         reverse_re = re.compile(re_tmpl.format('2'))
@@ -280,12 +279,11 @@ def run_centrifuge(files: Dict[str, List[str]], args: Args) -> str:
                 cmd_base +
                 f'-U "{file}" -S "{sum_file}" --report-file "{tsv_file}"')
 
-    for i, file in enumerate(files['forward']):
-        basename = os.path.basename(file)
+    for forward, reverse in zip(files['forward'], files['reverse']):
+        basename = os.path.basename(forward)
         tsv_file = os.path.join(reports_dir, basename + '.tsv')
         sum_file = os.path.join(reports_dir, basename + '.sum')
         if not os.path.isfile(tsv_file):
-            forward, reverse = files['reverse'][i]
             commands.append(cmd_base + f'-1 "{forward}" -2 "{reverse}" ' +
                             f'-S "{sum_file}" --report-file "{tsv_file}"')
 
@@ -329,7 +327,13 @@ def make_bubble(reports_dir: str, args: Args) -> str:
 def get_extension(file: str) -> str:
     """Return file extension"""
 
-    return os.path.splitext(file)[1]
+    base, ext = os.path.splitext(file)
+
+    if ext == '.gz':
+        _, ext2 = os.path.splitext(base)
+        return ext2 + ext
+
+    return ext
 
 
 # --------------------------------------------------
